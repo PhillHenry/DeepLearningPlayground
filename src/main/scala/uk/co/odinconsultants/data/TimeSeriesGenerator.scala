@@ -28,13 +28,13 @@ object TimeSeriesGenerator {
       eachDay(x.plusDays(1), end, fn, acc ++ fn(x))
   }
 
-  def hourlyUsage(fromInc: DDMMYYYY, toInc: DDMMYYYY, fn: GenerateFn): Option[Seq[Long]] = {
-    val from  = startOfDay(fromInc)
-    val to    = startOfDay(toInc)
+  def generate(fromInclusive: DDMMYYYY, toExclusive: DDMMYYYY, fn: GenerateFn): Option[Seq[Long]] = {
+    val from  = startOfDay(fromInclusive)
+    val to    = startOfDay(toExclusive)
     if (!to.isAfter(from))
       None
     else
-       Some(eachDay(from, to, fn, Seq()))
+      Some(eachDay(from, to, fn, Seq()))
   }
 
 }
