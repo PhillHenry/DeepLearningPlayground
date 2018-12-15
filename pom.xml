@@ -14,6 +14,7 @@
     <scala.version>2.11.5</scala.version>
     <scala.compat.version>2.11</scala.compat.version>
     <dl4j.version>1.0.0-beta3</dl4j.version>
+    <nd4j.version>1.0.0-beta3</nd4j.version>
   </properties>
 
   <dependencies>
@@ -94,6 +95,18 @@
             <artifactId>deeplearning4j-parallel-wrapper</artifactId>
             <version>${dl4j.version}</version>
         </dependency>
+
+    <dependency>
+      <groupId>org.nd4j</groupId>
+      <artifactId>nd4j-native-platform</artifactId>
+      <version>${nd4j.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.nd4j</groupId>
+      <artifactId>nd4j-native</artifactId>
+      <version>${nd4j.version}</version>
+    </dependency>
+
 
   </dependencies>
 
