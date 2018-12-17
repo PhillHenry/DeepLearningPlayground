@@ -32,8 +32,11 @@ class OfficeDataSpec extends WordSpec with Matchers {
     }
   }
 
-  private def checkStatsOf(stdDevMinutes: Int, xs: Seq[Int], expectedMeanHour: Double) = {
-    (stdDev(xs) * 60) shouldBe stdDevMinutes.toDouble +- 10d
-    meanOf(xs) shouldBe expectedMeanHour +- stdDev(xs)
+  private def checkStatsOf(stdDevMinutes: Double, xs: Seq[Int], expectedMeanHour: Double) = {
+    val sd = stdDev(xs)
+    val mu = meanOf(xs)
+    println(s"mean = $mu, std dev = $sd")
+    (sd * 60) shouldBe stdDevMinutes +- 10d
+    mu shouldBe expectedMeanHour +- sd
   }
 }
