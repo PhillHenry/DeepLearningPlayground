@@ -12,11 +12,13 @@ import org.deeplearning4j.nn.conf.{GradientNormalization, NeuralNetConfiguration
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork
 import org.deeplearning4j.nn.weights.WeightInit
 import org.deeplearning4j.optimize.listeners.ScoreIterationListener
+import org.nd4j.evaluation.classification.Evaluation
 import org.nd4j.linalg.activations.Activation
 import org.nd4j.linalg.learning.config.Nesterovs
 import org.nd4j.linalg.lossfunctions.LossFunctions
 import uk.co.odinconsultants.data.TimeSeriesGenerator._
 
+import scala.collection.JavaConverters._
 import scala.util.Random
 
 
@@ -41,30 +43,48 @@ object TimeSeries {
     val trainSize     = (xs.size * 0.9).toInt
     val train         = xs.take(trainSize)
     val test          = xs.drop(trainSize)
-
-    val n             = xs.size.toLong
     val nClasses      = 2
-    val obsPerSample  = xs.head._1.size.toLong
 
-    import scala.collection.JavaConverters._
-    val jLists: JList[JList[JList[Writable]]] = train.zipWithIndex.map { case ((xs, c), i) =>
-      xs.map { x =>
-        val features = new java.util.ArrayList[LongWritable].asInstanceOf[JList[Writable]]
-        features.add(new LongWritable(x))
-        features.add(new IntWritable(c))
-        features
-      }.toList.asJava
-    }.asJava
-
-    val batchSize = 1
-    val trainRR   = new InMemorySequenceRecordReader(jLists)
-    val trainIter = new SequenceRecordReaderDataSetIterator(trainRR, batchSize, nClasses, 1)
+    val jTrain = toDatasetIterator(toJLists(train), nClasses)
+    val jTest  = toDatasetIterator(toJLists(test), nClasses)
 
     val m = model(nClasses.toInt)
-    m.fit(trainIter)
+    val nEpochs = 30
+    (1 to nEpochs).foreach { _ =>
+      m.fit(jTrain)
+    }
+
+    val evaluation: Evaluation = m.evaluate(jTest)
+
+    // print the basic statistics about the trained classifier
+    println("Accuracy: "+evaluation.accuracy)
+    println("Precision: "+evaluation.precision)
+    println("Recall: "+evaluation.recall)
+
     m
   }
 
+  type JWritables = JList[JList[JList[Writable]]]
+
+  def toDatasetIterator(jTrain: JWritables, nClasses: Int): SequenceRecordReaderDataSetIterator = {
+    val batchSize = 1
+    val trainRR   = new InMemorySequenceRecordReader(jTrain)
+    val trainIter = new SequenceRecordReaderDataSetIterator(trainRR, batchSize, nClasses, 1)
+    trainIter
+  }
+
+  def toJLists(xs: Seq[(Seq[Long], Int)]): JWritables = xs.map { case (xs, c) =>
+    xs.map { x =>
+      val features = new java.util.ArrayList[LongWritable].asInstanceOf[JList[Writable]]
+      features.add(new LongWritable(x))
+      features.add(new IntWritable(c))
+      features
+    }.toList.asJava
+  }.asJava
+
+  /**
+    * Stolen from https://deeplearning4j.org/tutorials/08-rnns-sequence-classification-of-synthetic-control-data
+    */
   def model(numLabelClasses: Int): MultiLayerNetwork = {
     val conf = new NeuralNetConfiguration.Builder()
       .seed(123)    //Random number generator seed for improved repeatability. Optional.
