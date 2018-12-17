@@ -7,8 +7,8 @@ import org.datavec.api.records.reader.impl.inmemory.InMemorySequenceRecordReader
 import org.datavec.api.writable.{IntWritable, LongWritable, Writable}
 import org.deeplearning4j.datasets.datavec.SequenceRecordReaderDataSetIterator
 import org.deeplearning4j.nn.api.OptimizationAlgorithm
-import org.deeplearning4j.nn.conf.layers.{GravesLSTM, RnnOutputLayer}
-import org.deeplearning4j.nn.conf.{GradientNormalization, NeuralNetConfiguration}
+import org.deeplearning4j.nn.conf.layers.{GravesLSTM, LSTM, RnnOutputLayer}
+import org.deeplearning4j.nn.conf.{BackpropType, GradientNormalization, NeuralNetConfiguration}
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork
 import org.deeplearning4j.nn.weights.WeightInit
 import org.deeplearning4j.optimize.listeners.ScoreIterationListener
@@ -74,6 +74,7 @@ object TimeSeries {
     * Stolen from https://deeplearning4j.org/tutorials/08-rnns-sequence-classification-of-synthetic-control-data
     */
   def model(numLabelClasses: Int): MultiLayerNetwork = {
+    val tbpttLength = 50
     val conf = new NeuralNetConfiguration.Builder()
       .seed(123)    //Random number generator seed for improved repeatability. Optional.
       .optimizationAlgo(OptimizationAlgorithm.STOCHASTIC_GRADIENT_DESCENT)
@@ -82,12 +83,15 @@ object TimeSeries {
       .gradientNormalization(GradientNormalization.ClipElementWiseAbsoluteValue)  //Not always required, but helps with this data set
       .gradientNormalizationThreshold(0.5)
       .list()
-      .layer(0, new GravesLSTM.Builder().activation(Activation.TANH).nIn(1).nOut(10).build())
+      .layer(0, new LSTM.Builder().activation(Activation.TANH).nIn(1).nOut(10).build())
       .layer(1, new RnnOutputLayer.Builder(LossFunctions.LossFunction.MCXENT)
         .activation(Activation.SOFTMAX).nIn(10).nOut(numLabelClasses).build())
-      .pretrain(false).backprop(true).build()
+      .backpropType(BackpropType.TruncatedBPTT).tBPTTForwardLength(tbpttLength).tBPTTBackwardLength(tbpttLength)
+//      .pretrain(false).backprop(true)
+      .build()
 
     val model = new MultiLayerNetwork(conf)
+    model.init()
     model.setListeners(new ScoreIterationListener(20))
     model
   }
