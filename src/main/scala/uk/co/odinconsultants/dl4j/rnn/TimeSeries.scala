@@ -16,6 +16,7 @@ import org.nd4j.evaluation.classification.Evaluation
 import org.nd4j.linalg.activations.Activation
 import org.nd4j.linalg.learning.config.Nesterovs
 import org.nd4j.linalg.lossfunctions.LossFunctions
+import uk.co.odinconsultants.data.OfficeData
 import uk.co.odinconsultants.data.TimeSeriesGenerator._
 
 import scala.collection.JavaConverters._
@@ -24,33 +25,20 @@ import scala.util.Random
 
 object TimeSeries {
 
-
-
   def process(): MultiLayerNetwork = {
-
-    def noisyTime(offsetHour: Int): GenerateFn = { time =>
-      val rndOffset = (Random.nextGaussian() * 120).toLong
-      val noisy     = time.plusMinutes(rndOffset)
-      Seq(noisy.plusHours(offsetHour).toEpochSecond(ZoneOffset.of("Z")))
-    }
-
-    val start         = DDMMYYYY(1, 1, 2013)
-    val end           = DDMMYYYY(1, 1, 2014)
-    val nightTimes    = (1 to 300).flatMap(_ => generate(start, end, noisyTime(0))).map(_ -> 1)
-    val dayTimes      = (1 to 300).flatMap(_ => generate(start, end, noisyTime(12))).map(_ -> 0)
-    val data          = nightTimes ++ dayTimes
-    val xs            = Random.shuffle(data)
-    val trainSize     = (xs.size * 0.9).toInt
-    val train         = xs.take(trainSize)
-    val test          = xs.drop(trainSize)
+    val data          = new OfficeData
+    val trainSize     = (data.xs.size * 0.9).toInt
+    val train         = data.xs.take(trainSize)
+    val test          = data.xs.drop(trainSize)
     val nClasses      = 2
 
     val jTrain = toDatasetIterator(toJLists(train), nClasses)
     val jTest  = toDatasetIterator(toJLists(test), nClasses)
 
     val m = model(nClasses.toInt)
-    val nEpochs = 30
-    (1 to nEpochs).foreach { _ =>
+    val nEpochs = 20
+    (1 to nEpochs).foreach { i =>
+      println(s"Epoch $i")
       m.fit(jTrain)
     }
 
