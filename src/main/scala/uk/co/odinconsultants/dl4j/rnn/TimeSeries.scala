@@ -1,22 +1,20 @@
 package uk.co.odinconsultants.dl4j.rnn
 
-import java.time.{LocalDateTime, ZoneOffset}
+import java.time.ZoneOffset
+import java.util.{List => JList}
 
-import org.datavec.api.records.reader.impl.csv.CSVSequenceRecordReader
-import org.datavec.api.split.NumberedFileInputSplit
+import org.datavec.api.records.reader.impl.inmemory.InMemorySequenceRecordReader
+import org.datavec.api.writable.{IntWritable, LongWritable, Writable}
 import org.deeplearning4j.datasets.datavec.SequenceRecordReaderDataSetIterator
 import org.deeplearning4j.nn.api.OptimizationAlgorithm
 import org.deeplearning4j.nn.conf.layers.{GravesLSTM, RnnOutputLayer}
-import org.deeplearning4j.nn.conf.{GradientNormalization, NeuralNetConfiguration, Updater}
+import org.deeplearning4j.nn.conf.{GradientNormalization, NeuralNetConfiguration}
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork
 import org.deeplearning4j.nn.weights.WeightInit
 import org.deeplearning4j.optimize.listeners.ScoreIterationListener
 import org.nd4j.linalg.activations.Activation
 import org.nd4j.linalg.learning.config.Nesterovs
 import org.nd4j.linalg.lossfunctions.LossFunctions
-import org.nd4j.linalg.api.ndarray.INDArray
-import org.nd4j.linalg.factory.Nd4j
-import org.nd4j.linalg.dataset.DataSet
 import uk.co.odinconsultants.data.TimeSeriesGenerator._
 
 import scala.util.Random
@@ -45,30 +43,25 @@ object TimeSeries {
     val test          = xs.drop(trainSize)
 
     val n             = xs.size.toLong
-    val nClasses      = 2L
+    val nClasses      = 2
     val obsPerSample  = xs.head._1.size.toLong
 
-    val input         = Nd4j.zeros(trainSize, obsPerSample)
-    val labels        = Nd4j.zeros(trainSize, nClasses)
+    import scala.collection.JavaConverters._
+    val jLists: JList[JList[JList[Writable]]] = train.zipWithIndex.map { case ((xs, c), i) =>
+      xs.map { x =>
+        val features = new java.util.ArrayList[LongWritable].asInstanceOf[JList[Writable]]
+        features.add(new LongWritable(x))
+        features.add(new IntWritable(c))
+        features
+      }.toList.asJava
+    }.asJava
 
-    train.zipWithIndex.foreach { case ((xs, c), i) =>
-      val v = Nd4j.zeros(xs.size)
-      xs.zipWithIndex.foreach { case(l, i) => v.putScalar(i.toLong, l.toFloat) }
-      input.putRow(i, v)
-      if (i == 1) {
-        labels.putScalar(Array(1), 1)
-        labels.putScalar(Array(0), 0)
-      }
-      else {
-        labels.putScalar(Array(1), 1)
-        labels.putScalar(Array(0), 0)
-      }
-    }
-
-    val ds            = new DataSet(input, labels)
+    val batchSize = 1
+    val trainRR   = new InMemorySequenceRecordReader(jLists)
+    val trainIter = new SequenceRecordReaderDataSetIterator(trainRR, batchSize, nClasses, 1)
 
     val m = model(nClasses.toInt)
-    m.fit(ds)
+    m.fit(trainIter)
     m
   }
 
