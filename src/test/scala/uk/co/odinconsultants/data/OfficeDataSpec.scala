@@ -1,10 +1,6 @@
 package uk.co.odinconsultants.data
 
-import java.time.LocalDateTime
-
 import org.scalatest.{Matchers, WordSpec}
-
-import scala.collection.immutable
 
 class OfficeDataSpec extends WordSpec with Matchers {
 
