@@ -6,6 +6,7 @@ import java.util.{List => JList}
 import org.datavec.api.records.reader.impl.inmemory.InMemorySequenceRecordReader
 import org.datavec.api.writable.{IntWritable, LongWritable, Writable}
 import org.deeplearning4j.datasets.datavec.SequenceRecordReaderDataSetIterator
+import org.deeplearning4j.datasets.iterator.impl.ListDataSetIterator
 import org.deeplearning4j.nn.api.OptimizationAlgorithm
 import org.deeplearning4j.nn.conf.layers.{GravesLSTM, LSTM, RnnOutputLayer}
 import org.deeplearning4j.nn.conf.{BackpropType, GradientNormalization, NeuralNetConfiguration}
@@ -14,6 +15,11 @@ import org.deeplearning4j.nn.weights.WeightInit
 import org.deeplearning4j.optimize.listeners.ScoreIterationListener
 import org.nd4j.evaluation.classification.Evaluation
 import org.nd4j.linalg.activations.Activation
+import org.nd4j.linalg.api.ndarray.INDArray
+import org.nd4j.linalg.cpu.nativecpu.NDArray
+import org.nd4j.linalg.dataset.DataSet
+import org.nd4j.linalg.dataset.api.iterator.DataSetIterator
+import org.nd4j.linalg.factory.Nd4j
 import org.nd4j.linalg.learning.config.Nesterovs
 import org.nd4j.linalg.lossfunctions.LossFunctions
 import uk.co.odinconsultants.data.OfficeData
@@ -32,8 +38,8 @@ object TimeSeries {
     val test          = data.xs.drop(trainSize)
     val nClasses      = 2
 
-    val jTrain = toDatasetIterator(toJLists(train), nClasses)
-    val jTest  = toDatasetIterator(toJLists(test), nClasses)
+    val jTrain = toDataset(train, nClasses)
+    val jTest  = toDatasetIterator(test, nClasses)
 
     val m = model(nClasses.toInt)
     val nEpochs = 10
@@ -53,23 +59,51 @@ object TimeSeries {
     m
   }
 
-  type JWritables = JList[JList[JList[Writable]]]
+  type Series2Cat = (Seq[Long], Int)
 
-  def toDatasetIterator(jTrain: JWritables, nClasses: Int): SequenceRecordReaderDataSetIterator = {
-    val batchSize = 1
-    val trainRR   = new InMemorySequenceRecordReader(jTrain)
-    val trainIter = new SequenceRecordReaderDataSetIterator(trainRR, batchSize, nClasses, 1)
-    trainIter
+  def toFeatureArray(xs: Seq[Long]): NDArray = new NDArray(Array(xs.map(_.toDouble).toArray))
+
+  def toLabelArray(c: Int, xs: Seq[Long], nClasses: Int): INDArray = { // see BasicRNNExample
+    val labels = Nd4j.zeros(1, xs.size, nClasses)
+//    new NDArray(Array(Array.fill(size)(c.toDouble)))
+    xs.zipWithIndex.map(_._2).foreach { i =>
+      val indices: Array[Int] = Array(0, i, c)
+      labels.putScalar(indices, 1);
+    }
+    labels
   }
 
-  def toJLists(xs: Seq[(Seq[Long], Int)]): JWritables = xs.map { case (xs, c) =>
-    xs.map { x =>
-      val features = new java.util.ArrayList[LongWritable].asInstanceOf[JList[Writable]]
-      features.add(new LongWritable(x))
-      features.add(new IntWritable(c))
-      features
-    }.toList.asJava
-  }.asJava
+  val toBatchedDataset: ((Seq[Series2Cat])) => DataSet = { s2c =>
+    val features  = s2c.map { case (xs, _) =>
+      xs.map(_.toDouble).toArray
+    }.toArray
+    val labels  = s2c.map { case (xs, c) =>
+      Array.fill(xs.size)(c.toDouble)
+    }.toArray
+    val featureArr  = new NDArray(features)
+    val labelArr    = new NDArray(labels)
+    new DataSet(featureArr, labelArr)
+  }
+
+  def to3DDataset(nClasses: Int): ((Seq[Series2Cat])) => (NDArray, NDArray) = { s2c =>
+    val features    = s2c.map(_._1).map(toFeatureArray).asInstanceOf[Seq[INDArray]].asJava
+    val labels      = s2c.map { case (xs, c) => toLabelArray(c, xs, nClasses) }.asJava
+    val dimensions  = Array(s2c.size, 1, s2c.head._1.length)
+    val format      = Nd4j.order
+    (new NDArray(features, dimensions, format), new NDArray(labels, dimensions, format))
+  }
+
+  def toDatasetIterator(xs: Seq[Series2Cat], nClasses: Int): DataSetIterator = {
+    val fn3d      = to3DDataset(nClasses)
+    val datasets  = xs.grouped(7).map(fn3d).map { case (f, l) => new DataSet(f, l)}
+    new ListDataSetIterator(datasets.toList.asJava)
+  }
+
+  def toDataset(xs: Seq[Series2Cat], nClasses: Int): DataSet = {
+    val (features, labels) = to3DDataset(nClasses)(xs)
+    println(s"features = ${features.shape().mkString(", ")}, labels = ${labels.shape().mkString(",")}")
+    new DataSet(features, labels)
+  }
 
   /**
     * Stolen from https://deeplearning4j.org/tutorials/08-rnns-sequence-classification-of-synthetic-control-data
