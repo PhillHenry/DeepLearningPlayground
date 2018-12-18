@@ -36,7 +36,7 @@ object TimeSeries {
     val jTest  = toDatasetIterator(toJLists(test), nClasses)
 
     val m = model(nClasses.toInt)
-    val nEpochs = 20
+    val nEpochs = 10
     (1 to nEpochs).foreach { i =>
       println(s"Epoch $i")
       m.fit(jTrain)
@@ -46,6 +46,7 @@ object TimeSeries {
 
     // print the basic statistics about the trained classifier
     println("Accuracy: "+evaluation.accuracy)
+    println("Accuracy: "+evaluation.stats())
     println("Precision: "+evaluation.precision)
     println("Recall: "+evaluation.recall)
 
@@ -79,13 +80,13 @@ object TimeSeries {
       .seed(123)    //Random number generator seed for improved repeatability. Optional.
       .optimizationAlgo(OptimizationAlgorithm.STOCHASTIC_GRADIENT_DESCENT)
       .weightInit(WeightInit.XAVIER)
-      .updater(new Nesterovs(0.005, 0.01))
+      .updater(new Nesterovs(0.05, 1))
       .gradientNormalization(GradientNormalization.ClipElementWiseAbsoluteValue)  //Not always required, but helps with this data set
       .gradientNormalizationThreshold(0.5)
       .list()
-      .layer(0, new LSTM.Builder().activation(Activation.TANH).nIn(1).nOut(10).build())
+      .layer(0, new LSTM.Builder().activation(Activation.TANH).nIn(1).nOut(100).build())
       .layer(1, new RnnOutputLayer.Builder(LossFunctions.LossFunction.MCXENT)
-        .activation(Activation.SOFTMAX).nIn(10).nOut(numLabelClasses).build())
+        .activation(Activation.SOFTMAX).nIn(100).nOut(numLabelClasses).build())
       .backpropType(BackpropType.TruncatedBPTT).tBPTTForwardLength(tbpttLength).tBPTTBackwardLength(tbpttLength)
 //      .pretrain(false).backprop(true)
       .build()
