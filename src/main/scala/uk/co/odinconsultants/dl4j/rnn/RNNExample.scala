@@ -81,7 +81,7 @@ object RNNExample {
 
     val m = model(numLabelClasses)
 
-    val numEpochs = 1
+    val numEpochs = 10
     (1 to numEpochs).foreach(_ => m.fit(trainIter) )
 
     val evaluation: Evaluation = m.evaluate(testIter)

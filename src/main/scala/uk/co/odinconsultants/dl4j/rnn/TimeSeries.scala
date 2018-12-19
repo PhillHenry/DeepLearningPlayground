@@ -41,10 +41,12 @@ object TimeSeries {
     val nIn           = 1
     val jTrain        = to3DDataset(train, nClasses, seriesLength, nIn: Int)
     val m             = model(nIn, nClasses)
-    val nEpochs = 20
+    val nEpochs       = 10
+    val trainIter     = new ListDataSetIterator(jTrain.batchBy(32))
+
     (1 to nEpochs).foreach { i =>
       println(s"Epoch $i")
-      m.fit(jTrain)
+      m.fit(trainIter)
     }
 
     val testDataSets = test.map(x => to3DDataset(Seq(x), nClasses, seriesLength, nIn)).toList.asJava
@@ -77,8 +79,6 @@ object TimeSeries {
         labels.putScalar(indxLabels, 1)
       }
     }
-//    features.setOrder('f')
-//    labels.setOrder('f')
     new DataSet(features, labels)
   }
 
@@ -91,7 +91,7 @@ object TimeSeries {
       .seed(123)    //Random number generator seed for improved repeatability. Optional.
       .optimizationAlgo(OptimizationAlgorithm.STOCHASTIC_GRADIENT_DESCENT)
       .weightInit(WeightInit.XAVIER)
-      .updater(new Nesterovs(0.05, 1))
+      .updater(new Nesterovs(0.005, 0.9))
       .gradientNormalization(GradientNormalization.ClipElementWiseAbsoluteValue)  //Not always required, but helps with this data set
       .gradientNormalizationThreshold(0.5)
       .list()
