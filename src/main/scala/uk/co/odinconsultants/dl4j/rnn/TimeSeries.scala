@@ -37,18 +37,17 @@ object TimeSeries {
     val train         = data.xs.take(trainSize)
     val test          = data.xs.drop(trainSize)
     val nClasses      = 2
-    val nIn           = train.head._1.length
-
-    val jTrain        = to3DDataset(train, nClasses, nIn)
-
-    val m = model(nIn, nClasses)
+    val seriesLength  = train.head._1.length
+    val nIn           = 1
+    val jTrain        = to3DDataset(train, nClasses, seriesLength, nIn: Int)
+    val m             = model(nIn, nClasses)
     val nEpochs = 20
     (1 to nEpochs).foreach { i =>
       println(s"Epoch $i")
       m.fit(jTrain)
     }
 
-    val testDataSets = test.map(x => to3DDataset(Seq(x), nClasses, nIn)).toList.asJava
+    val testDataSets = test.map(x => to3DDataset(Seq(x), nClasses, seriesLength, nIn)).toList.asJava
     val iter = new ListDataSetIterator(testDataSets)
 
     val evaluation: Evaluation = m.evaluate(iter)
@@ -62,15 +61,16 @@ object TimeSeries {
 
   type Series2Cat = (Seq[Long], Int)
 
-  def to3DDataset(s2cs: Seq[Series2Cat], nClasses: Int, nIn: Int): DataSet = {
-    val features = Nd4j.zeros(1, nIn, s2cs.size)
-    val labels   = Nd4j.zeros(1, nClasses, s2cs.size)
+  def to3DDataset(s2cs: Seq[Series2Cat], nClasses: Int, seriesLength: Int, nIn: Int): DataSet = {
+    val n         = s2cs.size
+    val features  = Nd4j.zeros(n, nIn, seriesLength)
+    val labels    = Nd4j.zeros(n, nClasses, seriesLength)
 
     s2cs.zipWithIndex.foreach { case ((xs, c), i) =>
       xs.zipWithIndex.foreach { case (x, j) =>
-        val indxLabels:   Array[Int] = Array(0, c, i)
-        val indxFeatures: Array[Int] = Array(0, j, i)
+        val indxFeatures: Array[Int] = Array(i, 0, j)
         features.putScalar(indxFeatures, x)
+        val indxLabels:   Array[Int] = Array(i, c, j)
         labels.putScalar(indxLabels, 1)
       }
     }
