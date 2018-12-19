@@ -36,12 +36,11 @@ object TimeSeries {
     val trainSize     = (data.xs.size * 0.9).toInt
     val train         = data.xs.take(trainSize)
     val test          = data.xs.drop(trainSize)
-    val nClasses      = 2
 
-    val jTrain = to3DDataset(train, nClasses)
+    val jTrain = to3DDataset(train)
     //val jTest  = toDatasetIterator(test, nClasses)
 
-    val m = model(nClasses.toInt)
+    val m = model(train.head._1.length)
     val nEpochs = 10
     (1 to nEpochs).foreach { i =>
       println(s"Epoch $i")
@@ -59,20 +58,29 @@ object TimeSeries {
 
   type Series2Cat = (Seq[Long], Int)
 
-  def to3DDataset(s2cs: Seq[Series2Cat], nClasses: Int): DataSet = {
+  def to3DDataset(s2cs: Seq[Series2Cat]): DataSet = {
     val format   = Nd4j.order
+
+    def initArray = Nd4j.zeros(1, s2cs.head._1.size, s2cs.size)
+
+    val features = initArray
+    val labels   = initArray
+    /*
     val features = Nd4j.zeros(s2cs.size, 1, s2cs.head._1.size)
-    val labels   = Nd4j.zeros(s2cs.size, nClasses, s2cs.head._1.size)
+    val labels   = Nd4j.zeros(s2cs.size, 1, s2cs.head._1.size)
+    */
     s2cs.zipWithIndex.foreach { case ((xs, c), i) =>
-      xs.zipWithIndex.foreach { case (x, j) =>
-        val indxLabels:   Array[Int] = Array(i, c, j)
-        val indxFeatures: Array[Int] = Array(i, 0, j)
+      xs.zipWithIndex.sliding(2).foreach { window =>
+        val (x, j) = window.head
+        val (y, k) = window.last
+        val indxLabels:   Array[Int] = Array(0, k, i)
+        val indxFeatures: Array[Int] = Array(0, j, i)
         features.putScalar(indxFeatures, x)
-        labels.putScalar(indxLabels, 1)
+        labels.putScalar(indxLabels, y)
       }
     }
-    features.setOrder('f')
-    labels.setOrder('f')
+    //features.setOrder('f')
+    //labels.setOrder('f')
     new DataSet(features, labels)
   }
 
@@ -111,7 +119,7 @@ object TimeSeries {
   /**
     * Stolen from https://deeplearning4j.org/tutorials/08-rnns-sequence-classification-of-synthetic-control-data
     */
-  def model(numLabelClasses: Int): MultiLayerNetwork = {
+  def model( inN: Int): MultiLayerNetwork = {
     val tbpttLength = 50
     val conf = new NeuralNetConfiguration.Builder()
       .seed(123)    //Random number generator seed for improved repeatability. Optional.
@@ -121,9 +129,9 @@ object TimeSeries {
       .gradientNormalization(GradientNormalization.ClipElementWiseAbsoluteValue)  //Not always required, but helps with this data set
       .gradientNormalizationThreshold(0.5)
       .list()
-      .layer(0, new LSTM.Builder().activation(Activation.TANH).nIn(1).nOut(100).build())
+      .layer(0, new LSTM.Builder().activation(Activation.TANH).nIn(inN).nOut(100).build())
       .layer(1, new RnnOutputLayer.Builder(LossFunctions.LossFunction.MCXENT)
-        .activation(Activation.SOFTMAX).nIn(100).nOut(numLabelClasses).build())
+        .activation(Activation.SOFTMAX).nIn(100).nOut(1).build())
       .backpropType(BackpropType.TruncatedBPTT).tBPTTForwardLength(tbpttLength).tBPTTBackwardLength(tbpttLength)
 //      .pretrain(false).backprop(true)
       .build()

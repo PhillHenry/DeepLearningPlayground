@@ -4,15 +4,11 @@ import java.io.File
 
 import org.deeplearning4j.eval.Evaluation
 import org.deeplearning4j.nn.api.OptimizationAlgorithm
-import org.deeplearning4j.nn.conf.MultiLayerConfiguration
-import org.deeplearning4j.nn.conf.NeuralNetConfiguration
-import org.deeplearning4j.nn.conf.Updater
+import org.deeplearning4j.nn.conf._
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork
 import org.deeplearning4j.nn.weights.WeightInit
-import org.deeplearning4j.nn.conf.layers.{DenseLayer, GravesLSTM, OutputLayer, RnnOutputLayer}
+import org.deeplearning4j.nn.conf.layers._
 import org.deeplearning4j.nn.conf.distribution.UniformDistribution
-import org.deeplearning4j.nn.conf.layers.GravesLSTM
-import org.deeplearning4j.nn.conf.layers.RnnOutputLayer
 import org.deeplearning4j.datasets.datavec.SequenceRecordReaderDataSetIterator
 import org.deeplearning4j.optimize.listeners.ScoreIterationListener
 import org.datavec.api.split.NumberedFileInputSplit
@@ -28,6 +24,9 @@ import org.apache.commons.io.{FileUtils, IOUtils}
 import java.nio.charset.Charset
 import java.util.Random
 import java.net.URL
+
+import org.nd4j.linalg.learning.config.Nesterovs
+import org.nd4j.linalg.lossfunctions.LossFunctions
 
 /**
   * From https://deeplearning4j.org/tutorials/08-rnns-sequence-classification-of-synthetic-control-data
@@ -56,7 +55,7 @@ object RNNExample {
         linesList += newLine + ", " + count.toString()
         lineCount += 1
       }
-      util.Random.shuffle(linesList)
+      scala.util.Random.shuffle(linesList)
 
       for (line <- linesList) {
         val outPath = new File(dataPath, index + ".csv")
@@ -80,16 +79,39 @@ object RNNExample {
     testRR.initialize(new NumberedFileInputSplit(dataPath.getAbsolutePath() + "/%d.csv", 450, 599))
     val testIter = new SequenceRecordReaderDataSetIterator(testRR, batchSize, numLabelClasses, 1)
 
-    val model = TimeSeries.model(numLabelClasses)
+    val m = model(numLabelClasses)
 
     val numEpochs = 1
-    (1 to numEpochs).foreach(_ => model.fit(trainIter) )
+    (1 to numEpochs).foreach(_ => m.fit(trainIter) )
 
-    val evaluation: Evaluation = model.evaluate(testIter)
+    val evaluation: Evaluation = m.evaluate(testIter)
 
     // print the basic statistics about the trained classifier
     println("Accuracy: "+evaluation.accuracy())
     println("Precision: "+evaluation.precision())
     println("Recall: "+evaluation.recall())
+  }
+
+  def model(numLabelClasses: Int): MultiLayerNetwork = {
+    val tbpttLength = 50
+    val conf = new NeuralNetConfiguration.Builder()
+      .seed(123)    //Random number generator seed for improved repeatability. Optional.
+      .optimizationAlgo(OptimizationAlgorithm.STOCHASTIC_GRADIENT_DESCENT)
+      .weightInit(WeightInit.XAVIER)
+      .updater(new Nesterovs(0.05, 1))
+      .gradientNormalization(GradientNormalization.ClipElementWiseAbsoluteValue)  //Not always required, but helps with this data set
+      .gradientNormalizationThreshold(0.5)
+      .list()
+      .layer(0, new LSTM.Builder().activation(Activation.TANH).nIn(1).nOut(100).build())
+      .layer(1, new RnnOutputLayer.Builder(LossFunctions.LossFunction.MCXENT)
+        .activation(Activation.SOFTMAX).nIn(100).nOut(numLabelClasses).build())
+      .backpropType(BackpropType.TruncatedBPTT).tBPTTForwardLength(tbpttLength).tBPTTBackwardLength(tbpttLength)
+      //      .pretrain(false).backprop(true)
+      .build()
+
+    val model = new MultiLayerNetwork(conf)
+    model.init()
+    model.setListeners(new ScoreIterationListener(20))
+    model
   }
 }
