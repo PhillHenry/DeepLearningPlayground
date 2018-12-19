@@ -38,8 +38,8 @@ object TimeSeries {
     val test          = data.xs.drop(trainSize)
     val nClasses      = 2
 
-    val jTrain = toDataset(train, nClasses)
-    val jTest  = toDatasetIterator(test, nClasses)
+    val jTrain = to3DDataset(train, nClasses)
+    //val jTest  = toDatasetIterator(test, nClasses)
 
     val m = model(nClasses.toInt)
     val nEpochs = 10
@@ -47,19 +47,34 @@ object TimeSeries {
       println(s"Epoch $i")
       m.fit(jTrain)
     }
-
+/*
     val evaluation: Evaluation = m.evaluate(jTest)
-
-    // print the basic statistics about the trained classifier
     println("Accuracy: "+evaluation.accuracy)
     println("Accuracy: "+evaluation.stats())
     println("Precision: "+evaluation.precision)
     println("Recall: "+evaluation.recall)
-
+*/
     m
   }
 
   type Series2Cat = (Seq[Long], Int)
+
+  def to3DDataset(s2cs: Seq[Series2Cat], nClasses: Int): DataSet = {
+    val format   = Nd4j.order
+    val features = Nd4j.zeros(s2cs.size, 1, s2cs.head._1.size)
+    val labels   = Nd4j.zeros(s2cs.size, nClasses, s2cs.head._1.size)
+    s2cs.zipWithIndex.foreach { case ((xs, c), i) =>
+      xs.zipWithIndex.foreach { case (x, j) =>
+        val indxLabels:   Array[Int] = Array(i, c, j)
+        val indxFeatures: Array[Int] = Array(i, 0, j)
+        features.putScalar(indxFeatures, x)
+        labels.putScalar(indxLabels, 1)
+      }
+    }
+    features.setOrder('f')
+    labels.setOrder('f')
+    new DataSet(features, labels)
+  }
 
   def toFeatureArray(xs: Seq[Long]): NDArray = new NDArray(Array(xs.map(_.toDouble).toArray))
 
@@ -71,18 +86,6 @@ object TimeSeries {
       labels.putScalar(indices, 1);
     }
     labels
-  }
-
-  val toBatchedDataset: ((Seq[Series2Cat])) => DataSet = { s2c =>
-    val features  = s2c.map { case (xs, _) =>
-      xs.map(_.toDouble).toArray
-    }.toArray
-    val labels  = s2c.map { case (xs, c) =>
-      Array.fill(xs.size)(c.toDouble)
-    }.toArray
-    val featureArr  = new NDArray(features)
-    val labelArr    = new NDArray(labels)
-    new DataSet(featureArr, labelArr)
   }
 
   def to3DDataset(nClasses: Int): ((Seq[Series2Cat])) => (NDArray, NDArray) = { s2c =>
