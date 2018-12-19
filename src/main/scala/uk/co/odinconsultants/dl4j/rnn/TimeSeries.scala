@@ -36,39 +36,36 @@ object TimeSeries {
     val trainSize     = (data.xs.size * 0.9).toInt
     val train         = data.xs.take(trainSize)
     val test          = data.xs.drop(trainSize)
+    val nClasses      = 2
 
-    val jTrain = to3DDataset(train, 2)
-    //val jTest  = toDatasetIterator(test, nClasses)
+    val jTrain = to3DDataset(train, nClasses)
 
-    val m = model(train.head._1.length, 2)
-    val nEpochs = 10
+
+    val m = model(train.head._1.length, nClasses)
+    val nEpochs = 20
     (1 to nEpochs).foreach { i =>
       println(s"Epoch $i")
       m.fit(jTrain)
     }
-/*
-    val evaluation: Evaluation = m.evaluate(jTest)
+
+    val testDataSets = test.map(x => to3DDataset(Seq(x), nClasses)).toList.asJava
+    val iter = new ListDataSetIterator(testDataSets)
+
+    val evaluation: Evaluation = m.evaluate(iter)
     println("Accuracy: "+evaluation.accuracy)
     println("Accuracy: "+evaluation.stats())
     println("Precision: "+evaluation.precision)
     println("Recall: "+evaluation.recall)
-*/
+
     m
   }
 
   type Series2Cat = (Seq[Long], Int)
 
   def to3DDataset(s2cs: Seq[Series2Cat], nClasses: Int): DataSet = {
-    val format   = Nd4j.order
-
-    def initArray = Nd4j.zeros(1, s2cs.head._1.size, s2cs.size)
-
-    val features = initArray
+    val features = Nd4j.zeros(1, s2cs.head._1.size, s2cs.size)
     val labels   = Nd4j.zeros(1, nClasses, s2cs.size)
-    /*
-    val features = Nd4j.zeros(s2cs.size, 1, s2cs.head._1.size)
-    val labels   = Nd4j.zeros(s2cs.size, 1, s2cs.head._1.size)
-    */
+
     s2cs.zipWithIndex.foreach { case ((xs, c), i) =>
       xs.zipWithIndex.foreach { case (x, j) =>
         val indxLabels:   Array[Int] = Array(0, c, i)
@@ -77,40 +74,6 @@ object TimeSeries {
         labels.putScalar(indxLabels, 1)
       }
     }
-    //features.setOrder('f')
-    //labels.setOrder('f')
-    new DataSet(features, labels)
-  }
-
-  def toFeatureArray(xs: Seq[Long]): NDArray = new NDArray(Array(xs.map(_.toDouble).toArray))
-
-  def toLabelArray(c: Int, xs: Seq[Long], nClasses: Int): INDArray = { // see BasicRNNExample
-    val labels = Nd4j.zeros(1, xs.size, nClasses)
-//    new NDArray(Array(Array.fill(size)(c.toDouble)))
-    xs.zipWithIndex.map(_._2).foreach { i =>
-      val indices: Array[Int] = Array(0, i, c)
-      labels.putScalar(indices, 1);
-    }
-    labels
-  }
-
-  def to3DDataset(nClasses: Int): ((Seq[Series2Cat])) => (NDArray, NDArray) = { s2c =>
-    val features    = s2c.map(_._1).map(toFeatureArray).asInstanceOf[Seq[INDArray]].asJava
-    val labels      = s2c.map { case (xs, c) => toLabelArray(c, xs, nClasses) }.asJava
-    val dimensions  = Array(s2c.size, 1, s2c.head._1.length)
-    val format      = Nd4j.order
-    (new NDArray(features, dimensions, format), new NDArray(labels, dimensions, format))
-  }
-
-  def toDatasetIterator(xs: Seq[Series2Cat], nClasses: Int): DataSetIterator = {
-    val fn3d      = to3DDataset(nClasses)
-    val datasets  = xs.grouped(7).map(fn3d).map { case (f, l) => new DataSet(f, l)}
-    new ListDataSetIterator(datasets.toList.asJava)
-  }
-
-  def toDataset(xs: Seq[Series2Cat], nClasses: Int): DataSet = {
-    val (features, labels) = to3DDataset(nClasses)(xs)
-    println(s"features = ${features.shape().mkString(", ")}, labels = ${labels.shape().mkString(",")}")
     new DataSet(features, labels)
   }
 
