@@ -61,6 +61,9 @@ object TimeSeries {
 
   type Series2Cat = (Seq[Long], Int)
 
+  /**
+    * Aha! Was the victim of this bug: https://github.com/deeplearning4j/dl4j-examples/issues/779
+    */
   def to3DDataset(s2cs: Seq[Series2Cat], nClasses: Int, seriesLength: Int, nIn: Int): DataSet = {
     val n         = s2cs.size
     val features  = Nd4j.zeros(n, nIn, seriesLength)
@@ -74,6 +77,8 @@ object TimeSeries {
         labels.putScalar(indxLabels, 1)
       }
     }
+//    features.setOrder('f')
+//    labels.setOrder('f')
     new DataSet(features, labels)
   }
 

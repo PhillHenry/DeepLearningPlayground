@@ -13,8 +13,8 @@
     <encoding>UTF-8</encoding>
     <scala.version>2.11.5</scala.version>
     <scala.compat.version>2.11</scala.compat.version>
-    <dl4j.version>1.0.0-beta3</dl4j.version>
-    <nd4j.version>1.0.0-beta3</nd4j.version>
+    <dl4j.version>1.0.0-SNAPSHOT</dl4j.version>
+    <nd4j.version>1.0.0-SNAPSHOT</nd4j.version>
   </properties>
 
   <dependencies>
@@ -154,4 +154,18 @@
       </plugin>
     </plugins>
   </build>
+
+  <repositories>
+    <repository>
+      <id>snapshots-repo</id>
+      <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+      <releases>
+        <enabled>false</enabled>
+      </releases>
+      <snapshots>
+        <enabled>true</enabled>
+        <updatePolicy>daily</updatePolicy>  <!-- Optional, update daily -->
+      </snapshots>
+    </repository>
+  </repositories>
 </project>
