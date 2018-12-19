@@ -37,18 +37,18 @@ object TimeSeries {
     val train         = data.xs.take(trainSize)
     val test          = data.xs.drop(trainSize)
     val nClasses      = 2
+    val nIn           = train.head._1.length
 
-    val jTrain = to3DDataset(train, nClasses)
+    val jTrain        = to3DDataset(train, nClasses, nIn)
 
-
-    val m = model(train.head._1.length, nClasses)
+    val m = model(nIn, nClasses)
     val nEpochs = 20
     (1 to nEpochs).foreach { i =>
       println(s"Epoch $i")
       m.fit(jTrain)
     }
 
-    val testDataSets = test.map(x => to3DDataset(Seq(x), nClasses)).toList.asJava
+    val testDataSets = test.map(x => to3DDataset(Seq(x), nClasses, nIn)).toList.asJava
     val iter = new ListDataSetIterator(testDataSets)
 
     val evaluation: Evaluation = m.evaluate(iter)
@@ -62,8 +62,8 @@ object TimeSeries {
 
   type Series2Cat = (Seq[Long], Int)
 
-  def to3DDataset(s2cs: Seq[Series2Cat], nClasses: Int): DataSet = {
-    val features = Nd4j.zeros(1, s2cs.head._1.size, s2cs.size)
+  def to3DDataset(s2cs: Seq[Series2Cat], nClasses: Int, nIn: Int): DataSet = {
+    val features = Nd4j.zeros(1, nIn, s2cs.size)
     val labels   = Nd4j.zeros(1, nClasses, s2cs.size)
 
     s2cs.zipWithIndex.foreach { case ((xs, c), i) =>
