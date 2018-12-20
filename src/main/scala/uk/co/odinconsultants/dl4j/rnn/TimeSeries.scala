@@ -41,7 +41,7 @@ object TimeSeries {
     val nIn           = 1
     val jTrain        = to3DDataset(train, nClasses, seriesLength, nIn: Int)
     val m             = model(nIn, nClasses)
-    val nEpochs       = 10
+    val nEpochs       = 30
     val trainIter     = new ListDataSetIterator(jTrain.batchBy(32))
 
     (1 to nEpochs).foreach { i =>
@@ -84,27 +84,29 @@ object TimeSeries {
 
   /**
     * Stolen from https://deeplearning4j.org/tutorials/08-rnns-sequence-classification-of-synthetic-control-data
+    *
+    * hidden layer of 100 => "Warning: 1 class was never predicted by the model and was excluded from average precision"
     */
   def model( inN: Int, nClasses: Int): MultiLayerNetwork = {
-    val tbpttLength = 50
+    val tbpttLength = 10
     val conf = new NeuralNetConfiguration.Builder()
       .seed(123)    //Random number generator seed for improved repeatability. Optional.
       .optimizationAlgo(OptimizationAlgorithm.STOCHASTIC_GRADIENT_DESCENT)
       .weightInit(WeightInit.XAVIER)
-      .updater(new Nesterovs(0.005, 0.9))
+      .updater(new Nesterovs(0.05, 0.9))
       .gradientNormalization(GradientNormalization.ClipElementWiseAbsoluteValue)  //Not always required, but helps with this data set
       .gradientNormalizationThreshold(0.5)
       .list()
-      .layer(0, new LSTM.Builder().activation(Activation.TANH).nIn(inN).nOut(100).build())
+      .layer(0, new LSTM.Builder().activation(Activation.TANH).nIn(inN).nOut(10).build())
       .layer(1, new RnnOutputLayer.Builder(LossFunctions.LossFunction.MCXENT)
-        .activation(Activation.SOFTMAX).nIn(100).nOut(nClasses).build())
+        .activation(Activation.SOFTMAX).nIn(10).nOut(nClasses).build())
       .backpropType(BackpropType.TruncatedBPTT).tBPTTForwardLength(tbpttLength).tBPTTBackwardLength(tbpttLength)
 //      .pretrain(false).backprop(true)
       .build()
 
     val model = new MultiLayerNetwork(conf)
     model.init()
-    model.setListeners(new ScoreIterationListener(20))
+    model.setListeners(new ScoreIterationListener(1000 / tbpttLength))
     model
   }
 
