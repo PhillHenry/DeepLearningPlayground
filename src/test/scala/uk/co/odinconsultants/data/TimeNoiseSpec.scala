@@ -15,7 +15,7 @@ class TimeNoiseSpec extends WordSpec with Matchers {
   import TimeNoise._
 
   "Random points in time" should {
-    val n   = 1000
+    val n   = 100
     "be within range and unique" in {
       val rnd = (1 to n).map { _ =>
         val time = randomPoint(from, to)

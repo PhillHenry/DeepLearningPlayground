@@ -28,7 +28,7 @@ object TimeSeries {
 
   def process(): MultiLayerNetwork = {
     val data          = new ClusteredEventsData {
-      override def ratioRedTo1Blue: Int = 1
+      override def bunched2SpreadRatio: Double = 1
 
       override def N: Int = 600
 
@@ -42,14 +42,10 @@ object TimeSeries {
     val m             = model(nIn, nClasses)
     val nEpochs       = 10
 
-    val dir           = TimeSeries.getClass.getSimpleName
-    val base          = createTempDirectory(dir).toFile
-    forceDeleteOnExit(base)
-    val (trainFeaturesDir, trainLabelsDir)  = persist(dir + File.separator + "train", train)
-    val (testFeaturesDir, testLabelsDir)    = persist(dir + File.separator + "test",  test)
-    val miniBatchSize = 10
-    val trainIter     = reader(miniBatchSize, nClasses, train.size - 1, trainFeaturesDir.getAbsolutePath, trainLabelsDir.getAbsolutePath)
-    val testIter      = reader(miniBatchSize, nClasses, test.size - 1,  testFeaturesDir.getAbsolutePath,  testLabelsDir.getAbsolutePath)
+    val jTrain        = to3DDataset(train, nClasses, data.timeSeriesSize, nIn)
+    val trainIter     = new ListDataSetIterator(jTrain.batchBy(1), 10)
+    val testDataSets  = test.map(x => to3DDataset(Seq(x), nClasses, data.timeSeriesSize, nIn)).toList.asJava
+    val testIter      = new ListDataSetIterator(testDataSets)
 
     val normalizer = new NormalizerStandardize
     normalizer.fit(trainIter) //Collect training data statistics
@@ -82,10 +78,31 @@ object TimeSeries {
     m
   }
 
+  type Series2Cat = (Seq[Long], Int)
+
+  /**
+    * Aha! Was the victim of this bug: https://github.com/deeplearning4j/dl4j-examples/issues/779
+    */
+  def to3DDataset(s2cs: Seq[Series2Cat], nClasses: Int, seriesLength: Int, nIn: Int): DataSet = {
+    val n         = s2cs.size
+    val features  = Nd4j.zeros(n, nIn, seriesLength)
+    val labels    = Nd4j.zeros(n, nClasses, seriesLength)
+
+    s2cs.zipWithIndex.foreach { case ((xs, c), i) =>
+      xs.zipWithIndex.foreach { case (x, j) =>
+        val indxFeatures: Array[Int] = Array(i, 0, j)
+        features.putScalar(indxFeatures, x)
+        val indxLabels:   Array[Int] = Array(i, c, j)
+        labels.putScalar(indxLabels, 1)
+      }
+    }
+    new DataSet(features, labels)
+  }
+
+
   /**
     * Stolen from https://deeplearning4j.org/tutorials/08-rnns-sequence-classification-of-synthetic-control-data
     *
-    * hidden layer of 100 => "Warning: 1 class was never predicted by the model and was excluded from average precision"
     */
   def model( inN: Int, nClasses: Int): MultiLayerNetwork = {
     val tbpttLength = 100

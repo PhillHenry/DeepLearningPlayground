@@ -12,7 +12,7 @@ import uk.co.odinconsultants.maths.Stats._
 class ClusteredEventsDataSpec extends WordSpec with Matchers {
 
   class ClusterFixture extends ClusteredEventsData{
-    override def ratioRedTo1Blue: Int = 9
+    override def bunched2SpreadRatio: Double = 9
 
     override def N: Int = 100
 

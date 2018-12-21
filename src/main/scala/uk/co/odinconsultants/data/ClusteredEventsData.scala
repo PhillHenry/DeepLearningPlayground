@@ -8,13 +8,13 @@ import scala.util.Random
 
 trait ClusteredEventsData {
 
-  def ratioRedTo1Blue: Int
+  def bunched2SpreadRatio: Double
 
   def N: Int
 
   def timeSeriesSize: Int
 
-  val nBlue: Int = N / (1 + ratioRedTo1Blue)
+  val nBlue: Int = (N / (1 + bunched2SpreadRatio)).toInt
 
   val nRed: Int = N - nBlue
 
