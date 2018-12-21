@@ -2,8 +2,11 @@ package uk.co.odinconsultants.data
 
 import java.time.LocalDateTime
 
+import org.junit.runner.RunWith
+import org.scalatest.junit.JUnitRunner
 import org.scalatest.{Matchers, WordSpec}
 
+@RunWith(classOf[JUnitRunner])
 class DateTimeUtilsSpec extends WordSpec with Matchers {
 
   import DateTimeUtils._

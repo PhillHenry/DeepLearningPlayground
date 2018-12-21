@@ -1,8 +1,6 @@
 package uk.co.odinconsultants.data
 
-import java.time.LocalDateTime
-
-import uk.co.odinconsultants.data.TimeNoise.TIMEZONE
+import java.time.{LocalDateTime, ZoneOffset}
 
 object DateTimeUtils {
 
@@ -25,4 +23,5 @@ object DateTimeUtils {
   def gapsInSeconds(dateTimes: Seq[LocalDateTime]): Seq[Long] =
     dateTimes.sliding(2).map { xs => xs.last.toEpochSecond(TIMEZONE) - xs.head.toEpochSecond(TIMEZONE) }.toSeq
 
+  val TIMEZONE      = ZoneOffset.of("Z")
 }

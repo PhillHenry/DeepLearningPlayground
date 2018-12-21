@@ -18,8 +18,6 @@ object TimeNoise {
 
   val STDDEV_MINS   = 120
 
-  val TIMEZONE      = ZoneOffset.of("Z")
-
   def toLocalDateTime(l: Long): LocalDateTime = LocalDateTime.ofEpochSecond(l, 0, TIMEZONE)
 
   def noisyTime(offsetHour: Int): GenerateFn = { time =>

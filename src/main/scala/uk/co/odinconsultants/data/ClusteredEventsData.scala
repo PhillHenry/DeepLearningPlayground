@@ -1,8 +1,8 @@
 package uk.co.odinconsultants.data
 
+import uk.co.odinconsultants.data.DateTimeUtils._
 import uk.co.odinconsultants.data.TimeFixture._
 import uk.co.odinconsultants.data.TimeNoise.{noisyTime, randomPoint}
-import uk.co.odinconsultants.data.TimeSeriesGenerator.generate
 
 import scala.util.Random
 
@@ -21,14 +21,18 @@ trait ClusteredEventsData {
   val RED         = 1
   val BLUE        = 0
 
-  val red = (1 to nRed).map { _ =>
-    val date = randomPoint(from, to)
-    (1 to timeSeriesSize).map(_ => date).flatMap(x => noisyTime(0)(x)).map(_ -> RED)
-  }
+  type Events     = (Seq[Long], Int)
 
-  val blue = (1 to nBlue).map { _ =>
-    (1 to N).flatMap(_ => generate(start, end, noisyTime(12))).map(_ -> BLUE)
-  }
+  val noisyFn: GenerateFn = noisyTime(0)
 
-  val xs = Random.shuffle(red ++ blue)
+  val red: Seq[Events] = (1 to nRed).map { _ =>
+    val date    = randomPoint(from, to)
+    (1 to timeSeriesSize).map(_ => date).flatMap(noisyFn(_))
+  }.map(_ -> RED)
+
+  val blue: Seq[Events] = (1 to nBlue).map { _ =>
+    (1 to timeSeriesSize).map(_ => randomPoint(from, to).toEpochSecond(TIMEZONE))
+  }.map(_ -> BLUE)
+
+  val xs: Seq[Events] = Random.shuffle(red ++ blue)
 }
