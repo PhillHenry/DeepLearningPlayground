@@ -8,14 +8,6 @@ import scala.util.Random
 
 object TimeNoise {
 
-  implicit val LocalDateTimeOrder = new Ordering[LocalDateTime] {
-    override def compare(x: LocalDateTime, y: LocalDateTime): Int = {
-      if (x.toEpochSecond(TIMEZONE)  == y.toEpochSecond(TIMEZONE)) 0 else {
-        if (x.toEpochSecond(TIMEZONE) > y.toEpochSecond(TIMEZONE)) 1 else -1
-      }
-    }
-  }
-
   val STDDEV_MINS   = 120
 
   def toLocalDateTime(l: Long): LocalDateTime = LocalDateTime.ofEpochSecond(l, 0, TIMEZONE)

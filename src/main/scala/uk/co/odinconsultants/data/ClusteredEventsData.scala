@@ -25,14 +25,14 @@ trait ClusteredEventsData {
 
   val noisyFn: GenerateFn = noisyTime(0)
 
-  val red: Seq[Events] = (1 to nRed).map { _ =>
+  val bunched: Seq[Events] = (1 to nRed).map { _ =>
     val date    = randomPoint(from, to)
     (1 to timeSeriesSize).map(_ => date).flatMap(noisyFn(_))
   }.map(_ -> RED)
 
-  val blue: Seq[Events] = (1 to nBlue).map { _ =>
+  val spread: Seq[Events] = (1 to nBlue).map { _ =>
     (1 to timeSeriesSize).map(_ => randomPoint(from, to).toEpochSecond(TIMEZONE))
   }.map(_ -> BLUE)
 
-  val xs: Seq[Events] = Random.shuffle(red ++ blue)
+  val xs: Seq[Events] = Random.shuffle(bunched ++ spread)
 }
