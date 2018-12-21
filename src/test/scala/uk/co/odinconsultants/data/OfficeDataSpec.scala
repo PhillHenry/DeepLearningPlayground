@@ -3,11 +3,10 @@ package uk.co.odinconsultants.data
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 import org.scalatest.{Matchers, WordSpec}
+import uk.co.odinconsultants.data.TimeNoise._
 
 @RunWith(classOf[JUnitRunner])
 class OfficeDataSpec extends WordSpec with Matchers {
-
-  import OfficeData._
 
   def hoursOf(xs: Seq[Long]): Seq[Int] = xs.map(toLocalDateTime).map(_.getHour)
 

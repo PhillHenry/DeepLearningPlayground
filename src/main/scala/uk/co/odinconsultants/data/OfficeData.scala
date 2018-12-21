@@ -1,14 +1,11 @@
 package uk.co.odinconsultants.data
 
-import java.time.{LocalDateTime, ZoneOffset}
-
-import uk.co.odinconsultants.data.TimeSeriesGenerator.{DDMMYYYY, GenerateFn, generate}
+import uk.co.odinconsultants.data.TimeNoise.noisyTime
+import uk.co.odinconsultants.data.TimeSeriesGenerator.{DDMMYYYY, generate}
 
 import scala.util.Random
 
 class OfficeData {
-
-  import OfficeData._
 
   val start         = DDMMYYYY(1, 1, 2013)
   val end           = DDMMYYYY(1, 1, 2014)
@@ -20,19 +17,4 @@ class OfficeData {
   val data          = nightTimes ++ dayTimes
   val xs            = Random.shuffle(data)
 
-}
-
-object OfficeData {
-
-  val STDDEV_MINS   = 120
-
-  val TIMEZONE      = ZoneOffset.of("Z")
-
-  def toLocalDateTime(l: Long): LocalDateTime = LocalDateTime.ofEpochSecond(l, 0, TIMEZONE)
-
-  def noisyTime(offsetHour: Int): GenerateFn = { time =>
-    val rndOffset = (Random.nextGaussian() * STDDEV_MINS).toLong
-    val noisy     = time.plusMinutes(rndOffset)
-    Seq(noisy.plusHours(offsetHour).toEpochSecond(TIMEZONE))
-  }
 }

@@ -3,7 +3,7 @@ package uk.co.odinconsultants.data
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 import org.scalatest.{Matchers, WordSpec}
-import uk.co.odinconsultants.data.OfficeData.noisyTime
+import uk.co.odinconsultants.data.TimeNoise.noisyTime
 
 @RunWith(classOf[JUnitRunner])
 class TimeSeriesGeneratorSpec extends WordSpec with Matchers {

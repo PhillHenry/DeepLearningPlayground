@@ -6,7 +6,7 @@ import java.nio.file.Files.createTempDirectory
 import org.apache.commons.io.FileUtils.forceDeleteOnExit
 import org.deeplearning4j.datasets.iterator.impl.ListDataSetIterator
 import org.deeplearning4j.eval.Evaluation
-import org.deeplearning4j.nn.conf.layers.{LSTM, RnnOutputLayer}
+import org.deeplearning4j.nn.conf.layers.{DenseLayer, LSTM, RnnOutputLayer}
 import org.deeplearning4j.nn.conf.{GradientNormalization, NeuralNetConfiguration}
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork
 import org.deeplearning4j.nn.weights.WeightInit
