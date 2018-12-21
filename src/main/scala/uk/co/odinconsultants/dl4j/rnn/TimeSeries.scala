@@ -17,7 +17,7 @@ import org.nd4j.linalg.dataset.api.preprocessor.{DataNormalization, NormalizerSt
 import org.nd4j.linalg.factory.Nd4j
 import org.nd4j.linalg.learning.config.Nesterovs
 import org.nd4j.linalg.lossfunctions.LossFunctions
-import uk.co.odinconsultants.data.FilePersister.persist
+import uk.co.odinconsultants.io.FilePersister.persist
 import uk.co.odinconsultants.data.OfficeData
 import uk.co.odinconsultants.dl4j.rnn.readers.SequenceRecordFileReader.reader
 

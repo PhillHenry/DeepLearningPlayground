@@ -11,7 +11,7 @@ import uk.co.odinconsultants.dl4j.rnn.readers.SequenceRecordFileReader.reader
 @RunWith(classOf[JUnitRunner])
 class FilePersisterSpec extends WordSpec with Matchers {
 
-  import FilePersister._
+  import uk.co.odinconsultants.io.FilePersister._
 
   "Sequence saved" should {
     "be readable as SequenceRecordReaderDataSetIterator" in {

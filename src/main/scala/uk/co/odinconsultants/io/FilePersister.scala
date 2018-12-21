@@ -1,4 +1,4 @@
-package uk.co.odinconsultants.data
+package uk.co.odinconsultants.io
 
 import java.io.File
 import java.nio.charset.Charset.defaultCharset
