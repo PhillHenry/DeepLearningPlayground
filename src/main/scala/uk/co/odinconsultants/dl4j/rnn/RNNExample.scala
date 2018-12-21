@@ -81,8 +81,11 @@ object RNNExample {
 
     val m = model(numLabelClasses)
 
-    val numEpochs = 10
-    (1 to numEpochs).foreach(_ => m.fit(trainIter) )
+    val numEpochs = 200
+    (1 to numEpochs).foreach{ e =>
+      println("Epoch: " + e)
+      m.fit(trainIter)
+    }
 
     val evaluation: Evaluation = m.evaluate(testIter)
 
@@ -90,21 +93,22 @@ object RNNExample {
     println("Accuracy: "+evaluation.accuracy())
     println("Precision: "+evaluation.precision())
     println("Recall: "+evaluation.recall())
+    println("Recall: "+evaluation.stats())
   }
 
   def model(numLabelClasses: Int): MultiLayerNetwork = {
-    val tbpttLength = 50
+    val tbpttLength = 1000
     val conf = new NeuralNetConfiguration.Builder()
       .seed(123)    //Random number generator seed for improved repeatability. Optional.
       .optimizationAlgo(OptimizationAlgorithm.STOCHASTIC_GRADIENT_DESCENT)
       .weightInit(WeightInit.XAVIER)
-      .updater(new Nesterovs(0.05, 1))
+      .updater(new Nesterovs(0.05, 0.1))
       .gradientNormalization(GradientNormalization.ClipElementWiseAbsoluteValue)  //Not always required, but helps with this data set
       .gradientNormalizationThreshold(0.5)
       .list()
-      .layer(0, new LSTM.Builder().activation(Activation.TANH).nIn(1).nOut(100).build())
+      .layer(0, new LSTM.Builder().activation(Activation.TANH).nIn(1).nOut(20).build())
       .layer(1, new RnnOutputLayer.Builder(LossFunctions.LossFunction.MCXENT)
-        .activation(Activation.SOFTMAX).nIn(100).nOut(numLabelClasses).build())
+        .activation(Activation.SOFTMAX).nIn(20).nOut(numLabelClasses).build())
       .backpropType(BackpropType.TruncatedBPTT).tBPTTForwardLength(tbpttLength).tBPTTBackwardLength(tbpttLength)
       //      .pretrain(false).backprop(true)
       .build()

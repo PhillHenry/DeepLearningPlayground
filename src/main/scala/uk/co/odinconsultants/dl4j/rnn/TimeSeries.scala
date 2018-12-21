@@ -1,32 +1,20 @@
 package uk.co.odinconsultants.dl4j.rnn
 
-import java.time.ZoneOffset
-import java.util.{List => JList}
-
-import org.datavec.api.records.reader.impl.inmemory.InMemorySequenceRecordReader
-import org.datavec.api.writable.{IntWritable, LongWritable, Writable}
-import org.deeplearning4j.datasets.datavec.SequenceRecordReaderDataSetIterator
 import org.deeplearning4j.datasets.iterator.impl.ListDataSetIterator
-import org.deeplearning4j.nn.api.OptimizationAlgorithm
-import org.deeplearning4j.nn.conf.layers.{GravesLSTM, LSTM, RnnOutputLayer}
-import org.deeplearning4j.nn.conf.{BackpropType, GradientNormalization, NeuralNetConfiguration}
+import org.deeplearning4j.eval.Evaluation
+import org.deeplearning4j.nn.conf.layers.{LSTM, RnnOutputLayer}
+import org.deeplearning4j.nn.conf.{GradientNormalization, NeuralNetConfiguration}
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork
 import org.deeplearning4j.nn.weights.WeightInit
 import org.deeplearning4j.optimize.listeners.ScoreIterationListener
-import org.nd4j.evaluation.classification.Evaluation
 import org.nd4j.linalg.activations.Activation
-import org.nd4j.linalg.api.ndarray.INDArray
-import org.nd4j.linalg.cpu.nativecpu.NDArray
 import org.nd4j.linalg.dataset.DataSet
-import org.nd4j.linalg.dataset.api.iterator.DataSetIterator
 import org.nd4j.linalg.factory.Nd4j
 import org.nd4j.linalg.learning.config.Nesterovs
 import org.nd4j.linalg.lossfunctions.LossFunctions
 import uk.co.odinconsultants.data.OfficeData
-import uk.co.odinconsultants.data.TimeSeriesGenerator._
 
 import scala.collection.JavaConverters._
-import scala.util.Random
 
 
 object TimeSeries {
@@ -44,19 +32,27 @@ object TimeSeries {
     val nEpochs       = 30
     val trainIter     = new ListDataSetIterator(jTrain.batchBy(32))
 
+    val testDataSets  = test.map(x => to3DDataset(Seq(x), nClasses, seriesLength, nIn)).toList.asJava
+    val testIter      = new ListDataSetIterator(testDataSets)
+
+    val str = "Test set evaluation at epoch %d: Accuracy = %.2f, F1 = %.2f"
     (1 to nEpochs).foreach { i =>
       println(s"Epoch $i")
       m.fit(trainIter)
+      val evaluation: Evaluation = m.evaluate(testIter)
+      val f1: Double = evaluation.f1
+      val accuracy: Double = evaluation.accuracy
+      println(str.format(i, accuracy, f1))
+
+      testIter.reset()
+      trainIter.reset()
     }
 
-    val testDataSets = test.map(x => to3DDataset(Seq(x), nClasses, seriesLength, nIn)).toList.asJava
-    val iter = new ListDataSetIterator(testDataSets)
-
-    val evaluation: Evaluation = m.evaluate(iter)
+    val evaluation: Evaluation = m.evaluate(testIter)
     println("Accuracy: "+evaluation.accuracy)
     println("Accuracy: "+evaluation.stats())
-    println("Precision: "+evaluation.precision)
-    println("Recall: "+evaluation.recall)
+    println("Precision: "+evaluation.precision())
+    println("Recall: "+evaluation.recall())
 
     m
   }
@@ -88,21 +84,18 @@ object TimeSeries {
     * hidden layer of 100 => "Warning: 1 class was never predicted by the model and was excluded from average precision"
     */
   def model( inN: Int, nClasses: Int): MultiLayerNetwork = {
-    val tbpttLength = 10
+    val tbpttLength = 100
     val conf = new NeuralNetConfiguration.Builder()
-      .seed(123)    //Random number generator seed for improved repeatability. Optional.
-      .optimizationAlgo(OptimizationAlgorithm.STOCHASTIC_GRADIENT_DESCENT)
+      .seed(123) //Random number generator seed for improved repeatability. Optional.
       .weightInit(WeightInit.XAVIER)
-      .updater(new Nesterovs(0.05, 0.9))
-      .gradientNormalization(GradientNormalization.ClipElementWiseAbsoluteValue)  //Not always required, but helps with this data set
+      .updater(new Nesterovs(0.005))
+      .gradientNormalization(GradientNormalization.ClipElementWiseAbsoluteValue) //Not always required, but helps with this data set
       .gradientNormalizationThreshold(0.5)
       .list()
-      .layer(0, new LSTM.Builder().activation(Activation.TANH).nIn(inN).nOut(10).build())
+      .layer(0, new LSTM.Builder().activation(Activation.TANH).nIn(1).nOut(10).build())
       .layer(1, new RnnOutputLayer.Builder(LossFunctions.LossFunction.MCXENT)
         .activation(Activation.SOFTMAX).nIn(10).nOut(nClasses).build())
-      .backpropType(BackpropType.TruncatedBPTT).tBPTTForwardLength(tbpttLength).tBPTTBackwardLength(tbpttLength)
-//      .pretrain(false).backprop(true)
-      .build()
+      .build();
 
     val model = new MultiLayerNetwork(conf)
     model.init()
