@@ -1,5 +1,7 @@
 package uk.co.odinconsultants.data
 
+import java.time.LocalDateTime
+
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 import org.scalatest.{Matchers, WordSpec}
@@ -13,14 +15,12 @@ class TimeNoiseSpec extends WordSpec with Matchers {
   import TimeNoise._
 
   "Random points in time" should {
-    val min = startOfDay(start)
-    val max = startOfDay(end)
     val n   = 1000
     "be within range and unique" in {
       val rnd = (1 to n).map { _ =>
-        val time = randomPoint(min, max)
-        time.isBefore(max) || time.isEqual(max)
-        time.isAfter(min) || time.isEqual(min)
+        val time = randomPoint(from, to)
+        time.isBefore(to) || time.isEqual(to)
+        time.isAfter(from) || time.isEqual(from)
         time
       }.toSet
       rnd should have size n
@@ -28,11 +28,11 @@ class TimeNoiseSpec extends WordSpec with Matchers {
 
     "be distributed fairly evenly" in {
       val rnd = (1 to n).map { _ =>
-        randomPoint(min, max)
+        randomPoint(from, to)
       }.sorted
-      val gaps                = rnd.sliding(2).map { xs => xs.last.toEpochSecond(TIMEZONE) - xs.head.toEpochSecond(TIMEZONE) }.toSeq
-      val expectedAverageGap  = ((max.toEpochSecond(TIMEZONE) - min.toEpochSecond(TIMEZONE)) / n).toDouble
-      meanOf(gaps) shouldBe >= (expectedAverageGap)
+      val gaps                = gapsInSeconds(rnd)
+      val expectedAverageGap  = ((to.toEpochSecond(TIMEZONE) - from.toEpochSecond(TIMEZONE)) / n).toDouble
+      meanOf(gaps) shouldBe >= (expectedAverageGap) // TODO - is this right...?
     }
   }
 

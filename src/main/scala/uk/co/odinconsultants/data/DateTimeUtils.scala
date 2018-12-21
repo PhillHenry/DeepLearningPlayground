@@ -2,7 +2,11 @@ package uk.co.odinconsultants.data
 
 import java.time.LocalDateTime
 
+import uk.co.odinconsultants.data.TimeNoise.TIMEZONE
+
 object DateTimeUtils {
+
+  val SECONDS_IN_DAY: Long = 3600 * 24
 
   case class DDMMYYYY(day: Int, month: Int, year: Int)
 
@@ -17,5 +21,8 @@ object DateTimeUtils {
   }
 
   type GenerateFn = LocalDateTime => Seq[Long]
+
+  def gapsInSeconds(dateTimes: Seq[LocalDateTime]): Seq[Long] =
+    dateTimes.sliding(2).map { xs => xs.last.toEpochSecond(TIMEZONE) - xs.head.toEpochSecond(TIMEZONE) }.toSeq
 
 }

@@ -1,9 +1,8 @@
 package uk.co.odinconsultants.data
 
+import uk.co.odinconsultants.data.TimeFixture._
 import uk.co.odinconsultants.data.TimeNoise.noisyTime
 import uk.co.odinconsultants.data.TimeSeriesGenerator.generate
-import uk.co.odinconsultants.data.DateTimeUtils._
-import uk.co.odinconsultants.data.TimeFixture._
 
 import scala.util.Random
 
