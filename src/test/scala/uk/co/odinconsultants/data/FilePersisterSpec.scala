@@ -3,12 +3,10 @@ package uk.co.odinconsultants.data
 import java.nio.file.Files.createTempDirectory
 
 import org.apache.commons.io.FileUtils.forceDeleteOnExit
-import org.datavec.api.records.reader.impl.csv.CSVSequenceRecordReader
-import org.datavec.api.split.NumberedFileInputSplit
-import org.deeplearning4j.datasets.datavec.SequenceRecordReaderDataSetIterator
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 import org.scalatest.{Matchers, WordSpec}
+import uk.co.odinconsultants.dl4j.rnn.readers.SequenceRecordFileReader.reader
 
 @RunWith(classOf[JUnitRunner])
 class FilePersisterSpec extends WordSpec with Matchers {
@@ -22,15 +20,10 @@ class FilePersisterSpec extends WordSpec with Matchers {
 
       val data = new OfficeData
       import data._
-      val (featuresDirTrain, labelsDirTrain) = persist(base.getAbsolutePath, xs)
+      val (featuresDir, labelsDir) = persist(base.getAbsolutePath, xs)
 
-      val features        = new CSVSequenceRecordReader
-      features.initialize(new NumberedFileInputSplit(featuresDirTrain.getAbsolutePath + "/%d.csv", 0, xs.size - 1))
-      val labels          = new CSVSequenceRecordReader
-      labels.initialize(new NumberedFileInputSplit(labelsDirTrain.getAbsolutePath + "/%d.csv", 0, xs.size - 1))
-      val miniBatchSize   = 10
-      val numLabelClasses = 2
-      val iter            = new SequenceRecordReaderDataSetIterator(features, labels, miniBatchSize, numLabelClasses, false, SequenceRecordReaderDataSetIterator.AlignmentMode.ALIGN_END)
+      val miniBatchSize = 10
+      val iter          = reader(miniBatchSize, 2, xs.size - 1, featuresDir.getAbsolutePath, labelsDir.getAbsolutePath)
 
       iter.hasNext shouldBe true
       var count = 0
