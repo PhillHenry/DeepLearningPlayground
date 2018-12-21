@@ -13,6 +13,7 @@ import org.deeplearning4j.nn.weights.WeightInit
 import org.deeplearning4j.optimize.listeners.ScoreIterationListener
 import org.nd4j.linalg.activations.Activation
 import org.nd4j.linalg.dataset.DataSet
+import org.nd4j.linalg.dataset.api.preprocessor.{DataNormalization, NormalizerStandardize}
 import org.nd4j.linalg.factory.Nd4j
 import org.nd4j.linalg.learning.config.Nesterovs
 import org.nd4j.linalg.lossfunctions.LossFunctions
@@ -43,6 +44,15 @@ object TimeSeries {
     val miniBatchSize = 10
     val trainIter     = reader(miniBatchSize, nClasses, train.size - 1, trainFeaturesDir.getAbsolutePath, trainLabelsDir.getAbsolutePath)
     val testIter      = reader(miniBatchSize, nClasses, test.size - 1,  testFeaturesDir.getAbsolutePath,  testLabelsDir.getAbsolutePath)
+
+    val normalizer = new NormalizerStandardize
+    normalizer.fit(trainIter) //Collect training data statistics
+
+    trainIter.reset()
+
+    //Use previously collected statistics to normalize on-the-fly. Each DataSet returned by 'trainData' iterator will be normalized
+    trainIter.setPreProcessor(normalizer)
+    testIter.setPreProcessor(normalizer)
 
     val str = "Test set evaluation at epoch %d: Accuracy = %.2f, F1 = %.2f"
     (1 to nEpochs).foreach { i =>
