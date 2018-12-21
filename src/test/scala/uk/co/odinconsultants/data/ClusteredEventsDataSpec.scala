@@ -21,13 +21,9 @@ class ClusteredEventsDataSpec extends WordSpec with Matchers {
     def epochSecondOf(xs: Seq[Events]): Seq[Long]
       = xs.flatMap(_._1)
 
-    def timesOf(xs: Seq[Events]): Seq[LocalDateTime]
-      = xs.flatMap(_._1).map(toLocalDateTime)
-
     def toLocalDateTime(x: Long): LocalDateTime
       = LocalDateTime.ofEpochSecond(x, 0, DateTimeUtils.TIMEZONE)
 
-    val sampleString = s"bunched = ${bunched.head._1.map(toLocalDateTime(_)).mkString(", ")}\nspread  = ${spread.head._1.map(toLocalDateTime(_)).mkString(", ")}\n"
   }
 
   "All data" should {

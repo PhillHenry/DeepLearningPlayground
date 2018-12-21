@@ -18,7 +18,7 @@ import org.nd4j.linalg.factory.Nd4j
 import org.nd4j.linalg.learning.config.Nesterovs
 import org.nd4j.linalg.lossfunctions.LossFunctions
 import uk.co.odinconsultants.io.FilePersister.persist
-import uk.co.odinconsultants.data.OfficeData
+import uk.co.odinconsultants.data.{ClusteredEventsData, OfficeData}
 import uk.co.odinconsultants.dl4j.rnn.readers.SequenceRecordFileReader.reader
 
 import scala.collection.JavaConverters._
@@ -27,7 +27,13 @@ import scala.collection.JavaConverters._
 object TimeSeries {
 
   def process(): MultiLayerNetwork = {
-    val data          = new OfficeData
+    val data          = new ClusteredEventsData {
+      override def ratioRedTo1Blue: Int = 1
+
+      override def N: Int = 600
+
+      override def timeSeriesSize: Int = 50
+    }
     val trainSize     = (data.xs.size * 0.9).toInt
     val train         = data.xs.take(trainSize)
     val test          = data.xs.drop(trainSize)
