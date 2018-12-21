@@ -1,7 +1,10 @@
 package uk.co.odinconsultants.data
 
+import org.junit.runner.RunWith
+import org.scalatest.junit.JUnitRunner
 import org.scalatest.{Matchers, WordSpec}
 
+@RunWith(classOf[JUnitRunner])
 class TimeSeriesGeneratorSpec extends WordSpec with Matchers {
 
   import TimeSeriesGenerator._

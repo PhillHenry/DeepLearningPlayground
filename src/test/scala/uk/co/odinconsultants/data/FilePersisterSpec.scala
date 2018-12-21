@@ -6,8 +6,11 @@ import org.apache.commons.io.FileUtils.forceDeleteOnExit
 import org.datavec.api.records.reader.impl.csv.CSVSequenceRecordReader
 import org.datavec.api.split.NumberedFileInputSplit
 import org.deeplearning4j.datasets.datavec.SequenceRecordReaderDataSetIterator
+import org.junit.runner.RunWith
+import org.scalatest.junit.JUnitRunner
 import org.scalatest.{Matchers, WordSpec}
 
+@RunWith(classOf[JUnitRunner])
 class FilePersisterSpec extends WordSpec with Matchers {
 
   import FilePersister._
