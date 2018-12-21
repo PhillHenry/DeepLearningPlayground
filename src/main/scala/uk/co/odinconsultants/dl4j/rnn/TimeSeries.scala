@@ -1,5 +1,9 @@
 package uk.co.odinconsultants.dl4j.rnn
 
+import java.io.File
+import java.nio.file.Files.createTempDirectory
+
+import org.apache.commons.io.FileUtils.forceDeleteOnExit
 import org.deeplearning4j.datasets.iterator.impl.ListDataSetIterator
 import org.deeplearning4j.eval.Evaluation
 import org.deeplearning4j.nn.conf.layers.{LSTM, RnnOutputLayer}
@@ -12,7 +16,9 @@ import org.nd4j.linalg.dataset.DataSet
 import org.nd4j.linalg.factory.Nd4j
 import org.nd4j.linalg.learning.config.Nesterovs
 import org.nd4j.linalg.lossfunctions.LossFunctions
+import uk.co.odinconsultants.data.FilePersister.persist
 import uk.co.odinconsultants.data.OfficeData
+import uk.co.odinconsultants.dl4j.rnn.readers.SequenceRecordFileReader.reader
 
 import scala.collection.JavaConverters._
 
@@ -25,15 +31,18 @@ object TimeSeries {
     val train         = data.xs.take(trainSize)
     val test          = data.xs.drop(trainSize)
     val nClasses      = 2
-    val seriesLength  = train.head._1.length
     val nIn           = 1
-    val jTrain        = to3DDataset(train, nClasses, seriesLength, nIn: Int)
     val m             = model(nIn, nClasses)
-    val nEpochs       = 30
-    val trainIter     = new ListDataSetIterator(jTrain.batchBy(32))
+    val nEpochs       = 10
 
-    val testDataSets  = test.map(x => to3DDataset(Seq(x), nClasses, seriesLength, nIn)).toList.asJava
-    val testIter      = new ListDataSetIterator(testDataSets)
+    val dir           = TimeSeries.getClass.getSimpleName
+    val base          = createTempDirectory(dir).toFile
+    forceDeleteOnExit(base)
+    val (trainFeaturesDir, trainLabelsDir)  = persist(dir + File.separator + "train", train)
+    val (testFeaturesDir, testLabelsDir)    = persist(dir + File.separator + "test",  test)
+    val miniBatchSize = 10
+    val trainIter     = reader(miniBatchSize, nClasses, train.size - 1, trainFeaturesDir.getAbsolutePath, trainLabelsDir.getAbsolutePath)
+    val testIter      = reader(miniBatchSize, nClasses, test.size - 1,  testFeaturesDir.getAbsolutePath,  testLabelsDir.getAbsolutePath)
 
     val str = "Test set evaluation at epoch %d: Accuracy = %.2f, F1 = %.2f"
     (1 to nEpochs).foreach { i =>
@@ -55,27 +64,6 @@ object TimeSeries {
     println("Recall: "+evaluation.recall())
 
     m
-  }
-
-  type Series2Cat = (Seq[Long], Int)
-
-  /**
-    * Aha! Was the victim of this bug: https://github.com/deeplearning4j/dl4j-examples/issues/779
-    */
-  def to3DDataset(s2cs: Seq[Series2Cat], nClasses: Int, seriesLength: Int, nIn: Int): DataSet = {
-    val n         = s2cs.size
-    val features  = Nd4j.zeros(n, nIn, seriesLength)
-    val labels    = Nd4j.zeros(n, nClasses, seriesLength)
-
-    s2cs.zipWithIndex.foreach { case ((xs, c), i) =>
-      xs.zipWithIndex.foreach { case (x, j) =>
-        val indxFeatures: Array[Int] = Array(i, 0, j)
-        features.putScalar(indxFeatures, x)
-        val indxLabels:   Array[Int] = Array(i, c, j)
-        labels.putScalar(indxLabels, 1)
-      }
-    }
-    new DataSet(features, labels)
   }
 
   /**
