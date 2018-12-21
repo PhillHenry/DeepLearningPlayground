@@ -2,26 +2,14 @@ package uk.co.odinconsultants.data
 
 import java.time.LocalDateTime
 
+import uk.co.odinconsultants.data.DateTimeUtils._
+
 import scala.annotation.tailrec
 
 object TimeSeriesGenerator {
 
-  case class DDMMYYYY(day: Int, month: Int, year: Int)
-
-  def endOfDay(x: DDMMYYYY): LocalDateTime = {
-    import x._
-    LocalDateTime.of(year, month, day, 23, 59)
-  }
-
-  def startOfDay(x: DDMMYYYY): LocalDateTime = {
-    import x._
-    LocalDateTime.of(year, month, day, 0, 0)
-  }
-
-  type GenerateFn = LocalDateTime => Seq[Long]
-
   @tailrec
-  def eachDay(x: LocalDateTime, end: LocalDateTime, fn: GenerateFn, acc: Seq[Long]): Seq[Long] = {
+  def eachDay(x: LocalDateTime, end: LocalDateTime, fn: DateTimeUtils.GenerateFn, acc: Seq[Long]): Seq[Long] = {
     if (!x.isBefore(end))
       acc
     else

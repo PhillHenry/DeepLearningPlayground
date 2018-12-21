@@ -4,6 +4,7 @@ import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 import org.scalatest.{Matchers, WordSpec}
 import uk.co.odinconsultants.data.TimeNoise.noisyTime
+import uk.co.odinconsultants.data.DateTimeUtils._
 
 @RunWith(classOf[JUnitRunner])
 class TimeSeriesGeneratorSpec extends WordSpec with Matchers {

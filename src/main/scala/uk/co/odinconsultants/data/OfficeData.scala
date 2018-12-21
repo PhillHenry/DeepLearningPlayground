@@ -1,14 +1,14 @@
 package uk.co.odinconsultants.data
 
 import uk.co.odinconsultants.data.TimeNoise.noisyTime
-import uk.co.odinconsultants.data.TimeSeriesGenerator.{DDMMYYYY, generate}
+import uk.co.odinconsultants.data.TimeSeriesGenerator.generate
+import uk.co.odinconsultants.data.DateTimeUtils._
+import uk.co.odinconsultants.data.TimeFixture._
 
 import scala.util.Random
 
 class OfficeData {
 
-  val start         = DDMMYYYY(1, 1, 2013)
-  val end           = DDMMYYYY(1, 1, 2014)
   val NIGHT         = 1
   val DAY           = 0
   val N             = 600

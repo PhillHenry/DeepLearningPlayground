@@ -4,19 +4,12 @@ import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 import org.scalatest.{Matchers, WordSpec}
 import uk.co.odinconsultants.data.TimeNoise._
+import uk.co.odinconsultants.maths.Stats._
 
 @RunWith(classOf[JUnitRunner])
 class OfficeDataSpec extends WordSpec with Matchers {
 
   def hoursOf(xs: Seq[Long]): Seq[Int] = xs.map(toLocalDateTime).map(_.getHour)
-
-  def meanOf(xs: Seq[Int]): Double = xs.sum.toDouble / xs.size
-
-  def stdDev(xs: Seq[Int]): Double = {
-    val mu        = meanOf(xs)
-    val variance  = xs.map(x => math.pow(x - mu, 2)).sum / (xs.size - 1)
-    math.pow(variance, 0.5)
-  }
 
   "Night and day" should {
     "be significantly different" in {
