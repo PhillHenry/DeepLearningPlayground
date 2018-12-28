@@ -17,6 +17,7 @@ import org.nd4j.linalg.dataset.api.preprocessor.{DataNormalization, NormalizerSt
 import org.nd4j.linalg.factory.Nd4j
 import org.nd4j.linalg.learning.config.Nesterovs
 import org.nd4j.linalg.lossfunctions.LossFunctions
+import org.nd4j.linalg.lossfunctions.impl.LossNegativeLogLikelihood
 import uk.co.odinconsultants.io.FilePersister.persist
 import uk.co.odinconsultants.data.{ClusteredEventsData, OfficeData}
 import uk.co.odinconsultants.dl4j.rnn.readers.SequenceRecordFileReader.reader
@@ -28,9 +29,9 @@ object TimeSeries {
 
   def process(): MultiLayerNetwork = {
     val data          = new ClusteredEventsData {
-      override def bunched2SpreadRatio: Double = 1
+      override def bunched2SpreadRatio: Double = 0.01
 
-      override def N: Int = 600
+      override def N: Int = 6000
 
       override def timeSeriesSize: Int = 50
     }
@@ -40,7 +41,7 @@ object TimeSeries {
     val nClasses      = 2
     val nIn           = 1
     val m             = model(nIn, nClasses)
-    val nEpochs       = 10
+    val nEpochs       = 5
 
     val jTrain        = to3DDataset(train, nClasses, data.timeSeriesSize, nIn)
     val trainIter     = new ListDataSetIterator(jTrain.batchBy(1), 10)
@@ -56,14 +57,12 @@ object TimeSeries {
     trainIter.setPreProcessor(normalizer)
     testIter.setPreProcessor(normalizer)
 
-    val str = "Test set evaluation at epoch %d: Accuracy = %.2f, F1 = %.2f"
     (1 to nEpochs).foreach { i =>
       println(s"Epoch $i")
       m.fit(trainIter)
       val evaluation: Evaluation = m.evaluate(testIter)
       val f1: Double = evaluation.f1
-      val accuracy: Double = evaluation.accuracy
-      println(str.format(i, accuracy, f1))
+      println("Test set evaluation at epoch %d: Accuracy = %.2f, Precision = %.2f, F1 = %.2f".format(i, evaluation.accuracy, evaluation.precision(), f1))
 
       testIter.reset()
       trainIter.reset()
@@ -71,12 +70,117 @@ object TimeSeries {
 
     val evaluation: Evaluation = m.evaluate(testIter)
     println("Accuracy: "+evaluation.accuracy)
-    println("Accuracy: "+evaluation.stats())
+    println("Stats: "+evaluation.stats())
     println("Precision: "+evaluation.precision())
     println("Recall: "+evaluation.recall())
 
     m
   }
+
+  /*
+  Epochs = 5; N = 6000, time series size = 50; spread:clustered = 100:1
+Accuracy: 0.9929666666666667
+Stats:
+
+========================Evaluation Metrics========================
+ # of classes:    2
+ Accuracy:        0.9930
+ Precision:       0.9586
+ Recall:          0.7572
+ F1 Score:        0.6613
+Precision, recall & F1: reported for positive class (class 1 - "1") only
+
+
+=========================Confusion Matrix=========================
+     0     1
+-------------
+ 29583    17 | 0 = 0
+   194   206 | 1 = 1
+
+Confusion matrix format: Actual (rowClass) predicted as (columnClass) N times
+==================================================================
+Precision: 0.9237668161434978
+Recall: 0.515
+
+
+new LossNegativeLogLikelihood(Nd4j.create(Array(0.01f, 1f)))
+Results:
+Accuracy: 0.9850333333333333
+Stats:
+
+========================Evaluation Metrics========================
+ # of classes:    2
+ Accuracy:        0.9850
+ Precision:       0.6290
+ Recall:          0.8311
+ F1 Score:        0.3755
+Precision, recall & F1: reported for positive class (class 1 - "1") only
+
+
+=========================Confusion Matrix=========================
+     0     1
+-------------
+ 29416   384 | 0 = 0
+    65   135 | 1 = 1
+
+Confusion matrix format: Actual (rowClass) predicted as (columnClass) N times
+==================================================================
+Precision: 0.26011560693641617
+Recall: 0.675
+
+
+Now with new LossNegativeLogLikelihood(Nd4j.create(Array(0.1f, 1f)))
+Results:
+Accuracy: 0.996
+Stats:
+
+========================Evaluation Metrics========================
+ # of classes:    2
+ Accuracy:        0.9960
+ Precision:       0.8655
+ Recall:          0.6564
+ F1 Score:        0.4393
+Precision, recall & F1: reported for positive class (class 1 - "1") only
+
+
+=========================Confusion Matrix=========================
+     0     1
+-------------
+ 29833    17 | 0 = 0
+   103    47 | 1 = 1
+
+Confusion matrix format: Actual (rowClass) predicted as (columnClass) N times
+==================================================================
+Precision: 0.734375
+Recall: 0.31333333333333335
+
+
+new LossNegativeLogLikelihood(Nd4j.create(Array(0.005f, 1f)))
+Results:
+Accuracy: 0.9760666666666666
+Stats:
+
+========================Evaluation Metrics========================
+ # of classes:    2
+ Accuracy:        0.9761
+ Precision:       0.6592
+ Recall:          0.9526
+ F1 Score:        0.4751
+Precision, recall & F1: reported for positive class (class 1 - "1") only
+
+
+=========================Confusion Matrix=========================
+     0     1
+-------------
+ 28957   693 | 0 = 0
+    25   325 | 1 = 1
+
+Confusion matrix format: Actual (rowClass) predicted as (columnClass) N times
+==================================================================
+Precision: 0.3192534381139489
+Recall: 0.9285714285714286
+
+   */
 
   type Series2Cat = (Seq[Long], Int)
 
@@ -105,7 +209,6 @@ object TimeSeries {
     *
     */
   def model( inN: Int, nClasses: Int): MultiLayerNetwork = {
-    val tbpttLength = 100
     val conf = new NeuralNetConfiguration.Builder()
       .seed(123) //Random number generator seed for improved repeatability. Optional.
       .weightInit(WeightInit.XAVIER)
@@ -115,12 +218,12 @@ object TimeSeries {
       .list()
       .layer(0, new LSTM.Builder().activation(Activation.TANH).nIn(1).nOut(10).build())
       .layer(1, new RnnOutputLayer.Builder(LossFunctions.LossFunction.MCXENT)
-        .activation(Activation.SOFTMAX).nIn(10).nOut(nClasses).build())
-      .build();
+        .activation(Activation.SOFTMAX).nIn(10).nOut(nClasses).lossFunction(new LossNegativeLogLikelihood(Nd4j.create(Array(0.005f, 1f)))).build())
+      .build()
 
     val model = new MultiLayerNetwork(conf)
     model.init()
-    model.setListeners(new ScoreIterationListener(1000 / tbpttLength))
+    model.setListeners(new ScoreIterationListener(100))
     model
   }
 

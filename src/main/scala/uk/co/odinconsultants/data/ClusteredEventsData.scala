@@ -18,8 +18,8 @@ trait ClusteredEventsData {
 
   val nRed: Int = N - nBlue
 
-  val RED         = 1
-  val BLUE        = 0
+  val BUNCHED     = 1
+  val SPREAD      = 0
 
   type Events     = (Seq[Long], Int)
 
@@ -28,11 +28,11 @@ trait ClusteredEventsData {
   val bunched: Seq[Events] = (1 to nRed).map { _ =>
     val date    = randomPoint(from, to)
     (1 to timeSeriesSize).map(_ => date).flatMap(noisyFn(_))
-  }.map(_ -> RED)
+  }.map(_ -> BUNCHED)
 
   val spread: Seq[Events] = (1 to nBlue).map { _ =>
     (1 to timeSeriesSize).map(_ => randomPoint(from, to).toEpochSecond(TIMEZONE))
-  }.map(_ -> BLUE)
+  }.map(_ -> SPREAD)
 
   val xs: Seq[Events] = Random.shuffle(bunched ++ spread)
 }
