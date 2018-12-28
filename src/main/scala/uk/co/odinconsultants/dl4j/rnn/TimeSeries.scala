@@ -14,7 +14,9 @@ import org.nd4j.linalg.factory.Nd4j
 import org.nd4j.linalg.learning.config.Nesterovs
 import org.nd4j.linalg.lossfunctions.LossFunctions
 import org.nd4j.linalg.lossfunctions.impl.LossNegativeLogLikelihood
-import uk.co.odinconsultants.data.ClusteredEventsData
+import uk.co.odinconsultants.data.ClusteredEventsData.Events
+import uk.co.odinconsultants.data.SamplingFunctions.{oversample, trainTest}
+import uk.co.odinconsultants.data.{ClusteredEventsData, SamplingFunctions}
 
 import scala.collection.JavaConverters._
 
@@ -29,9 +31,16 @@ object TimeSeries {
 
       override def timeSeriesSize: Int = 50
     }
-    val trainSize     = (data.xs.size * 0.9).toInt
-    val train         = data.xs.take(trainSize)
-    val test          = data.xs.drop(trainSize)
+    /*
+    import data._
+    val toOver: Seq[(Seq[Events], Double)] = Seq((bunched, 1d), (spread, 1))
+    val oversampled   = oversample(toOver)
+    val (train, test) = trainTest(oversampled, 0.9)
+      */
+//    val trainSize     = (data.xs.size * 0.9).toInt
+//    val train         = data.xs.take(trainSize)
+//    val test          = data.xs.drop(trainSize)
+    val (train, test) = trainTest(Seq(data.bunched, data.spread), 0.9)
     val nClasses      = 2
     val nIn           = 1
     val m             = model(nIn, nClasses)
@@ -43,11 +52,10 @@ object TimeSeries {
     val testIter      = new ListDataSetIterator(testDataSets)
 
     val normalizer = new NormalizerStandardize
-    normalizer.fit(trainIter) //Collect training data statistics
+    normalizer.fit(trainIter)
 
     trainIter.reset()
 
-    //Use previously collected statistics to normalize on-the-fly. Each DataSet returned by 'trainData' iterator will be normalized
     trainIter.setPreProcessor(normalizer)
     testIter.setPreProcessor(normalizer)
 
@@ -56,7 +64,7 @@ object TimeSeries {
       m.fit(trainIter)
       val evaluation: Evaluation = m.evaluate(testIter)
       val f1: Double = evaluation.f1
-      println("Test set evaluation at epoch %d: Accuracy = %.2f, Precision = %.2f, F1 = %.2f".format(i, evaluation.accuracy, evaluation.precision(), f1))
+      println("Test set evaluation at epoch %d: Accuracy = %.2f, Precision = %.2f, Recall = %.2f, F1 = %.2f".format(i, evaluation.accuracy, evaluation.precision(), evaluation.recall(), f1))
 
       testIter.reset()
       trainIter.reset()
