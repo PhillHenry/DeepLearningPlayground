@@ -11,6 +11,8 @@ import uk.co.odinconsultants.maths.Stats._
 @RunWith(classOf[JUnitRunner])
 class ClusteredEventsDataSpec extends WordSpec with Matchers {
 
+  import ClusteredEventsData._
+
   class ClusterFixture extends ClusteredEventsData{
     override def bunched2SpreadRatio: Double = 9
 

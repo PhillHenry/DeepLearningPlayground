@@ -1,26 +1,20 @@
 package uk.co.odinconsultants.dl4j.rnn
 
-import java.io.File
-import java.nio.file.Files.createTempDirectory
-
-import org.apache.commons.io.FileUtils.forceDeleteOnExit
 import org.deeplearning4j.datasets.iterator.impl.ListDataSetIterator
-import org.deeplearning4j.eval.Evaluation
-import org.deeplearning4j.nn.conf.layers.{DenseLayer, LSTM, RnnOutputLayer}
+import org.nd4j.evaluation.classification.Evaluation
+import org.deeplearning4j.nn.conf.layers.{LSTM, RnnOutputLayer}
 import org.deeplearning4j.nn.conf.{GradientNormalization, NeuralNetConfiguration}
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork
 import org.deeplearning4j.nn.weights.WeightInit
 import org.deeplearning4j.optimize.listeners.ScoreIterationListener
 import org.nd4j.linalg.activations.Activation
 import org.nd4j.linalg.dataset.DataSet
-import org.nd4j.linalg.dataset.api.preprocessor.{DataNormalization, NormalizerStandardize}
+import org.nd4j.linalg.dataset.api.preprocessor.NormalizerStandardize
 import org.nd4j.linalg.factory.Nd4j
 import org.nd4j.linalg.learning.config.Nesterovs
 import org.nd4j.linalg.lossfunctions.LossFunctions
 import org.nd4j.linalg.lossfunctions.impl.LossNegativeLogLikelihood
-import uk.co.odinconsultants.io.FilePersister.persist
-import uk.co.odinconsultants.data.{ClusteredEventsData, OfficeData}
-import uk.co.odinconsultants.dl4j.rnn.readers.SequenceRecordFileReader.reader
+import uk.co.odinconsultants.data.ClusteredEventsData
 
 import scala.collection.JavaConverters._
 
@@ -76,111 +70,6 @@ object TimeSeries {
 
     m
   }
-
-  /*
-  Epochs = 5; N = 6000, time series size = 50; spread:clustered = 100:1
-Accuracy: 0.9929666666666667
-Stats:
-
-========================Evaluation Metrics========================
- # of classes:    2
- Accuracy:        0.9930
- Precision:       0.9586
- Recall:          0.7572
- F1 Score:        0.6613
-Precision, recall & F1: reported for positive class (class 1 - "1") only
-
-
-=========================Confusion Matrix=========================
-     0     1
--------------
- 29583    17 | 0 = 0
-   194   206 | 1 = 1
-
-Confusion matrix format: Actual (rowClass) predicted as (columnClass) N times
-==================================================================
-Precision: 0.9237668161434978
-Recall: 0.515
-
-
-new LossNegativeLogLikelihood(Nd4j.create(Array(0.01f, 1f)))
-Results:
-Accuracy: 0.9850333333333333
-Stats:
-
-========================Evaluation Metrics========================
- # of classes:    2
- Accuracy:        0.9850
- Precision:       0.6290
- Recall:          0.8311
- F1 Score:        0.3755
-Precision, recall & F1: reported for positive class (class 1 - "1") only
-
-
-=========================Confusion Matrix=========================
-     0     1
--------------
- 29416   384 | 0 = 0
-    65   135 | 1 = 1
-
-Confusion matrix format: Actual (rowClass) predicted as (columnClass) N times
-==================================================================
-Precision: 0.26011560693641617
-Recall: 0.675
-
-
-Now with new LossNegativeLogLikelihood(Nd4j.create(Array(0.1f, 1f)))
-Results:
-Accuracy: 0.996
-Stats:
-
-========================Evaluation Metrics========================
- # of classes:    2
- Accuracy:        0.9960
- Precision:       0.8655
- Recall:          0.6564
- F1 Score:        0.4393
-Precision, recall & F1: reported for positive class (class 1 - "1") only
-
-
-=========================Confusion Matrix=========================
-     0     1
--------------
- 29833    17 | 0 = 0
-   103    47 | 1 = 1
-
-Confusion matrix format: Actual (rowClass) predicted as (columnClass) N times
-==================================================================
-Precision: 0.734375
-Recall: 0.31333333333333335
-
-
-new LossNegativeLogLikelihood(Nd4j.create(Array(0.005f, 1f)))
-Results:
-Accuracy: 0.9760666666666666
-Stats:
-
-========================Evaluation Metrics========================
- # of classes:    2
- Accuracy:        0.9761
- Precision:       0.6592
- Recall:          0.9526
- F1 Score:        0.4751
-Precision, recall & F1: reported for positive class (class 1 - "1") only
-
-
-=========================Confusion Matrix=========================
-     0     1
--------------
- 28957   693 | 0 = 0
-    25   325 | 1 = 1
-
-Confusion matrix format: Actual (rowClass) predicted as (columnClass) N times
-==================================================================
-Precision: 0.3192534381139489
-Recall: 0.9285714285714286
-
-   */
 
   type Series2Cat = (Seq[Long], Int)
 

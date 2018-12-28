@@ -5,8 +5,9 @@ import uk.co.odinconsultants.data.TimeFixture._
 import uk.co.odinconsultants.data.TimeNoise.{noisyTime, randomPoint}
 
 import scala.util.Random
+import ClusteredEventsData._
 
-trait ClusteredEventsData {
+trait ClusteredEventsData extends ClassificationData[Events] {
 
   def bunched2SpreadRatio: Double
 
@@ -21,8 +22,6 @@ trait ClusteredEventsData {
   val BUNCHED     = 1
   val SPREAD      = 0
 
-  type Events     = (Seq[Long], Int)
-
   val noisyFn: GenerateFn = noisyTime(0)
 
   val bunched: Seq[Events] = (1 to nRed).map { _ =>
@@ -35,4 +34,10 @@ trait ClusteredEventsData {
   }.map(_ -> SPREAD)
 
   val xs: Seq[Events] = Random.shuffle(bunched ++ spread)
+
+  override val classes = Seq(bunched, spread)
+}
+
+object ClusteredEventsData {
+  type Events     = (Seq[Long], Int)
 }
