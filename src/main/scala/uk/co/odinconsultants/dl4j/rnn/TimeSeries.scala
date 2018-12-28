@@ -31,16 +31,35 @@ object TimeSeries {
 
       override def timeSeriesSize: Int = 50
     }
-    /*
     import data._
-    val toOver: Seq[(Seq[Events], Double)] = Seq((bunched, 1d), (spread, 1))
+    /*
+No oversampling:
+     0     1
+-------------
+ 28868   832 | 0 = 0
+     3   297 | 1 = 1
+
+Confusion matrix format: Actual (rowClass) predicted as (columnClass) N times
+==================================================================
+Precision: 0.2630646589902569
+Recall: 0.99
+
+
+With (bunched, 10d), (spread, 1)
+     0     1
+-------------
+ 28283  1417 | 0 = 0
+     0  3000 | 1 = 1
+
+Confusion matrix format: Actual (rowClass) predicted as (columnClass) N times
+==================================================================
+Precision: 0.6791940230925968
+Recall: 1.0
+
+     */
+    val toOver: Seq[(Seq[Events], Double)] = Seq((bunched, 10d), (spread, 1))
     val oversampled   = oversample(toOver)
     val (train, test) = trainTest(oversampled, 0.9)
-      */
-//    val trainSize     = (data.xs.size * 0.9).toInt
-//    val train         = data.xs.take(trainSize)
-//    val test          = data.xs.drop(trainSize)
-    val (train, test) = trainTest(Seq(data.bunched, data.spread), 0.9)
     val nClasses      = 2
     val nIn           = 1
     val m             = model(nIn, nClasses)
