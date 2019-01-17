@@ -68,39 +68,6 @@
       <version>2.2.6</version>
       <scope>test</scope>
     </dependency>
-        <!-- Core DL4J functionality -->
-        <dependency>
-            <groupId>org.deeplearning4j</groupId>
-            <artifactId>deeplearning4j-core</artifactId>
-            <version>${dl4j.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.deeplearning4j</groupId>
-            <artifactId>deeplearning4j-nlp</artifactId>
-            <version>${dl4j.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.deeplearning4j</groupId>
-            <artifactId>deeplearning4j-zoo</artifactId>
-            <version>${dl4j.version}</version>
-        </dependency>
-
-        <!-- deeplearning4j-ui is used for visualization: see http://deeplearning4j.org/visualization -->
-        <dependency>
-            <groupId>org.deeplearning4j</groupId>
-            <artifactId>deeplearning4j-ui_${scala.compat.version}</artifactId>
-            <version>${dl4j.version}</version>
-        </dependency>
-
-        <!-- ParallelWrapper & ParallelInference live here -->
-        <dependency>
-            <groupId>org.deeplearning4j</groupId>
-            <artifactId>deeplearning4j-parallel-wrapper</artifactId>
-            <version>${dl4j.version}</version>
-        </dependency>
-
     <dependency>
       <groupId>org.nd4j</groupId>
       <artifactId>nd4j-native-platform</artifactId>
@@ -175,7 +142,7 @@
         </executions>
         <configuration>
           <executable>java</executable>
-          <mainClass>uk.co.odinconsultants.dl4j.rnn.TimeSeries</mainClass>
+          <mainClass>TimeSeries</mainClass>
           <workingDirectory>.</workingDirectory>
           <!--<systemProperties>-->
             <!--<systemProperty>-->
