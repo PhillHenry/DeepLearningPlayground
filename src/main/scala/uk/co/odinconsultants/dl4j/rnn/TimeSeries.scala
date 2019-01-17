@@ -56,11 +56,21 @@ Confusion matrix format: Actual (rowClass) predicted as (columnClass) N times
 Precision: 0.6791940230925968
 Recall: 1.0
 
+With (bunched, 100d), (spread, 1)
+     0     1
+-------------
+ 28037  1663 | 0 = 0
+     0 30000 | 1 = 1
+
+Confusion matrix format: Actual (rowClass) predicted as (columnClass) N times
+==================================================================
+Precision: 0.9474781290465212
+Recall: 1.0
      */
 
-    val (train, test) = trainTest(Seq(bunched, spread), 0.9)
-    val toOver: Seq[(Seq[Events], Double)] = Seq((train.filter(_._2 == BUNCHED), 100d), (train.filter(_._2 == SPREAD), 1))
+    val toOver: Seq[(Seq[Events], Double)] = Seq((bunched, 10d), (spread, 1))
     val oversampled   = oversample(toOver)
+    val (train, test) = trainTest(oversampled, 0.9)
     val nClasses      = 2
     val nIn           = 1
     val m             = model(nIn, nClasses)

@@ -106,7 +106,11 @@
       <artifactId>nd4j-native</artifactId>
       <version>${nd4j.version}</version>
     </dependency>
-
+    <!--<dependency>-->
+      <!--<groupId>org.deeplearning4j</groupId>-->
+      <!--<artifactId>deeplearning4j-cuda-9.0</artifactId>-->
+      <!--<version>${nd4j.version}</version>-->
+    <!--</dependency>-->
 
   </dependencies>
 
@@ -152,6 +156,32 @@
           </includes>
         </configuration>
       </plugin>
+
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <version>1.6.0</version>
+        <executions>
+          <execution>
+            <goals>
+              <goal>java</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <executable>java</executable>
+          <mainClass>uk.co.odinconsultants.dl4j.rnn.TimeSeries</mainClass>
+          <workingDirectory>.</workingDirectory>
+          <!--<systemProperties>-->
+            <!--<systemProperty>-->
+              <!--<key>XXX</key>-->
+              <!--<value>YYY</value>-->
+            <!--</systemProperty>-->
+          <!--</systemProperties>-->
+        </configuration>
+      </plugin>
+
+
     </plugins>
   </build>
 
