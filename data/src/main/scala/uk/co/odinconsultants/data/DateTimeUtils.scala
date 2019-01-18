@@ -26,7 +26,7 @@ object DateTimeUtils {
     LocalDateTime.of(year, month, day, 0, 0)
   }
 
-  type GenerateFn = LocalDateTime => Seq[Long]
+  type GenerateFn[T] = LocalDateTime => Seq[T]
 
   def gapsInSeconds(dateTimes: Seq[LocalDateTime]): Seq[Long] =
     dateTimes.sorted.sliding(2).map { xs => xs.last.toEpochSecond(TIMEZONE) - xs.head.toEpochSecond(TIMEZONE) }.toSeq

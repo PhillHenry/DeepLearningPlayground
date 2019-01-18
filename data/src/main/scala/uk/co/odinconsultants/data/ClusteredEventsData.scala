@@ -22,7 +22,7 @@ trait ClusteredEventsData extends ClassificationData[Events] {
   val BUNCHED     = 1
   val SPREAD      = 0
 
-  val noisyFn: GenerateFn = noisyTime(0)
+  val noisyFn: GenerateFn[Long] = noisyTime(0)
 
   val bunched: Seq[Events] = (1 to nRed).map { _ =>
     val date    = randomPoint(from, to)

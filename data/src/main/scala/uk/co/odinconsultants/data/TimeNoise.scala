@@ -12,7 +12,7 @@ object TimeNoise {
 
   def toLocalDateTime(l: Long): LocalDateTime = LocalDateTime.ofEpochSecond(l, 0, TIMEZONE)
 
-  def noisyTime(offsetHour: Int): GenerateFn = { time =>
+  def noisyTime(offsetHour: Int): GenerateFn[Long] = { time =>
     val rndOffset = (Random.nextGaussian() * STDDEV_MINS).toLong
     val noisy     = time.plusMinutes(rndOffset)
     Seq(noisy.plusHours(offsetHour).toEpochSecond(TIMEZONE))
