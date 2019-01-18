@@ -10,6 +10,8 @@ import org.nd4j.linalg.learning.config.RmsProp
 
 object AnomalyDetection {
 
+  // Note use ".pretrain(DataSetIterator) not fit(DataSetIterator) for unsupervised training"
+
   /**
     * Taken from Alex Black's VariationalAutoEncoderExample in DeepLearning4J examples.
     */
