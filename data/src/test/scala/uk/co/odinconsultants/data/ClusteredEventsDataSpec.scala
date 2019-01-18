@@ -5,7 +5,6 @@ import java.time.LocalDateTime
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 import org.scalatest.{Matchers, WordSpec}
-import uk.co.odinconsultants.data.DateTimeUtils.gapsInSeconds
 import uk.co.odinconsultants.maths.Stats._
 
 @RunWith(classOf[JUnitRunner])
