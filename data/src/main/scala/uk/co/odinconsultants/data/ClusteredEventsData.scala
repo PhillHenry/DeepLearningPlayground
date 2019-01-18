@@ -26,7 +26,7 @@ trait ClusteredEventsData extends ClassificationData[Events] {
 
   val bunched: Seq[Events] = (1 to nRed).map { _ =>
     val date    = randomPoint(from, to)
-    (1 to timeSeriesSize).map(_ => date).flatMap(noisyFn(_))
+    (1 to timeSeriesSize).flatMap(_ => noisyFn(date))
   }.map(_ -> BUNCHED)
 
   val spread: Seq[Events] = (1 to nBlue).map { _ =>
