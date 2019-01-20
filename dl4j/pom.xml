@@ -18,6 +18,17 @@
 
     <dependencies>
         <dependency>
+            <groupId>org.scalanlp</groupId>
+            <artifactId>breeze_${scala.compat.version}</artifactId>
+            <version>1.0-RC2</version>
+        </dependency>
+        <dependency>
+            <groupId>org.scalanlp</groupId>
+            <artifactId>breeze-viz_${scala.compat.version}</artifactId>
+            <version>1.0-RC2</version>
+        </dependency>
+
+        <dependency>
             <groupId>${parent.groupId}</groupId>
             <artifactId>data</artifactId>
             <version>${pom.version}</version>
