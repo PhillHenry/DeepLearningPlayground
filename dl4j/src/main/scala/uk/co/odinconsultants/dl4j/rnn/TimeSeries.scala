@@ -151,6 +151,25 @@ Recall: 1.0
     val model = new MultiLayerNetwork(conf)
     model.init()
     model.setListeners(new ScoreIterationListener(100))
+
+
+    /* see https://deeplearning4j.org/docs/latest/deeplearning4j-nn-visualization */
+    import org.deeplearning4j.api.storage.StatsStorage
+    import org.deeplearning4j.ui.api.UIServer
+    import org.deeplearning4j.ui.stats.StatsListener
+    import org.deeplearning4j.ui.storage.InMemoryStatsStorage
+    //Initialize the user interface backend
+    val uiServer = UIServer.getInstance
+
+    //Configure where the network information (gradients, score vs. time etc) is to be stored. Here: store in memory.
+    val statsStorage = new InMemoryStatsStorage //Alternative: new FileStatsStorage(File), for saving and loading later
+
+    //Attach the StatsStorage instance to the UI: this allows the contents of the StatsStorage to be visualized
+    uiServer.attach(statsStorage)
+
+    //Then add the StatsListener to collect this information from the network, as it trains
+    model.setListeners(new StatsListener(statsStorage))
+
     model
   }
 
