@@ -18,11 +18,11 @@ object TimeNoise {
     Seq(noisy.plusHours(offsetHour).toEpochSecond(TIMEZONE))
   }
 
-  def randomPoint(from: LocalDateTime, to: LocalDateTime): LocalDateTime = {
-    val max   = to.toEpochSecond(TIMEZONE)
-    val min   = from.toEpochSecond(TIMEZONE)
+  def randomDateBetween(startInc: LocalDateTime, endExcl: LocalDateTime): LocalDateTime = {
+    val max   = endExcl.toEpochSecond(TIMEZONE)
+    val min   = startInc.toEpochSecond(TIMEZONE)
     val range = max - min
-    val rnd   = min + (Random.nextLong() % range)
+    val rnd   = min + (math.abs(Random.nextLong()) % range)
     LocalDateTime.ofEpochSecond(rnd, 0, TIMEZONE)
   }
 }
