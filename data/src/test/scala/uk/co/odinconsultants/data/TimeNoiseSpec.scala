@@ -18,7 +18,7 @@ class TimeNoiseSpec extends WordSpec with Matchers {
     val n   = 100
     "be within range and unique" in {
       val rnd = (1 to n).map { _ =>
-        val time = randomPoint(from, to)
+        val time = randomDateBetween(from, to)
         time.isBefore(to) || time.isEqual(to)
         time.isAfter(from) || time.isEqual(from)
         time
@@ -28,11 +28,13 @@ class TimeNoiseSpec extends WordSpec with Matchers {
 
     "be distributed fairly evenly" in {
       val rnd = (1 to n).map { _ =>
-        randomPoint(from, to)
+        randomDateBetween(from, to)
       }.sorted
       val gaps                = gapsInSeconds(rnd)
-      val expectedAverageGap  = ((to.toEpochSecond(TIMEZONE) - from.toEpochSecond(TIMEZONE)) / n).toDouble
-      meanOf(gaps) shouldBe >= (expectedAverageGap) // TODO - is this right...?
+      gaps should have length n
+      val duration            = to.toEpochSecond(TIMEZONE) - from.toEpochSecond(TIMEZONE)
+      val expectedAverageGap  = duration.toDouble / n
+      meanOf(gaps) shouldBe (expectedAverageGap) +- (expectedAverageGap * 0.02)
     }
   }
 
