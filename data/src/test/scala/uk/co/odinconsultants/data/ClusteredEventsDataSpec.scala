@@ -19,7 +19,7 @@ class ClusteredEventsDataSpec extends WordSpec with Matchers {
 
     override def timeSeriesSize: Int = 50
 
-    def epochSecondOf(xs: Seq[Events]): Seq[Long]
+    def epochSecondOf(xs: Seq[ClassifiedSample]): Seq[Long]
       = xs.flatMap(_._1)
 
     def toLocalDateTime(x: Long): LocalDateTime

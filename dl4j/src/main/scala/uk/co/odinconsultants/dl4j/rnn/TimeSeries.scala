@@ -14,7 +14,7 @@ import org.nd4j.linalg.learning.config.Nesterovs
 import org.nd4j.linalg.lossfunctions.LossFunctions
 import org.nd4j.linalg.lossfunctions.impl.LossNegativeLogLikelihood
 import uk.co.odinconsultants.data.ClusteredEventsData
-import uk.co.odinconsultants.data.ClusteredEventsData.Events
+import uk.co.odinconsultants.data.ClusteredEventsData.ClassifiedSample
 import uk.co.odinconsultants.data.SamplingFunctions.{oversample, trainTest}
 import uk.co.odinconsultants.dl4j.MultiDimension._
 
@@ -68,7 +68,7 @@ Precision: 0.9474781290465212
 Recall: 1.0
      */
 
-    val toOver: Seq[(Seq[Events], Double)] = Seq((bunched, 10d), (spread, 1))
+    val toOver: Seq[(Seq[ClassifiedSample], Double)] = Seq((bunched, 10d), (spread, 1))
     val oversampled   = oversample(toOver)
     val (train, test) = trainTest(oversampled, 0.9)
     val nClasses      = 2

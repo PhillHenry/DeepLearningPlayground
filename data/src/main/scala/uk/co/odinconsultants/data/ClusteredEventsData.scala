@@ -7,7 +7,7 @@ import uk.co.odinconsultants.data.TimeNoise.{noisyTime, randomDateBetween}
 import scala.util.Random
 import ClusteredEventsData._
 
-trait ClusteredEventsData extends ClassificationData[Events] {
+trait ClusteredEventsData extends ClassificationData[ClassifiedSample] {
 
   def bunched2SpreadRatio: Double
 
@@ -24,20 +24,20 @@ trait ClusteredEventsData extends ClassificationData[Events] {
 
   val noisyFn: GenerateFn[Long] = noisyTime(0)
 
-  val bunched: Seq[Events] = (1 to nRed).map { _ =>
+  val bunched: Seq[ClassifiedSample] = (1 to nRed).map { _ =>
     val date    = randomDateBetween(from, to)
     (1 to timeSeriesSize).flatMap(_ => noisyFn(date))
   }.map(_ -> BUNCHED)
 
-  val spread: Seq[Events] = (1 to nBlue).map { _ =>
+  val spread: Seq[ClassifiedSample] = (1 to nBlue).map { _ =>
     (1 to timeSeriesSize).map(_ => randomDateBetween(from, to).toEpochSecond(TIMEZONE))
   }.map(_ -> SPREAD)
 
-  val xs: Seq[Events] = Random.shuffle(bunched ++ spread)
+  val xs: Seq[ClassifiedSample] = Random.shuffle(bunched ++ spread)
 
   override val classes = Seq(bunched, spread)
 }
 
 object ClusteredEventsData {
-  type Events     = (Seq[Long], Int)
+  type ClassifiedSample     = (Seq[Long], Int)
 }
