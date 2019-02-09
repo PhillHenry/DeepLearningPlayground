@@ -7,7 +7,12 @@ import org.deeplearning4j.nn.multilayer.MultiLayerNetwork
 import org.deeplearning4j.nn.weights.WeightInit
 import org.deeplearning4j.optimize.listeners.ScoreIterationListener
 import org.nd4j.linalg.activations.Activation
+import org.nd4j.linalg.api.ndarray.INDArray
+import org.nd4j.linalg.dataset.api.DataSet
+import org.nd4j.linalg.factory.Nd4j
+import org.nd4j.linalg.indexing.NDArrayIndex
 import org.nd4j.linalg.learning.config.RmsProp
+import org.nd4j.linalg.primitives.Pair
 import uk.co.odinconsultants.data.ClusteredEventsData
 import uk.co.odinconsultants.data.SamplingFunctions.trainTest
 import uk.co.odinconsultants.dl4j.MultiDimension._
@@ -33,7 +38,7 @@ object AnomalyDetection {
     val (train, test) = trainTest(Seq(xs), 0.9)
     val nClasses      = 2
     val nIn           = timeSeriesSize
-    val m             = model(nIn)
+    val net           = model(nIn)
     val nEpochs       = 5
 
     val jTrain        = to2DDataset(train, nClasses, timeSeriesSize)
@@ -43,14 +48,36 @@ object AnomalyDetection {
     val jTestDataSets = testDataSets.asJava
     val testIter      = new ListDataSetIterator(jTestDataSets)
 
-    m.pretrain(trainIter, nEpochs) // Note use ".pretrain(DataSetIterator) not fit(DataSetIterator) for unsupervised training"
+    net.pretrain(trainIter, nEpochs) // Note use ".pretrain(DataSetIterator) not fit(DataSetIterator) for unsupervised training"
 
     testDataSets.foreach { ds =>
       println(ds.getFeatures.length()) // "50"
 //      println(m.score(ds)) // Exception: Cannot calculate score if final layer is not an instance of IOutputLayer. Final layer is of type: o.d.n.l.v.VariationalAutoencoder
     }
 
-    m
+    val vae = net.getLayer(0).asInstanceOf[VariationalAutoencoder]
+
+    while (testIter.hasNext) {
+      val ds = testIter.next
+      val features = ds.getFeatures
+      val labels = Nd4j.argMax(ds.getLabels, 1)
+      //Labels as integer indexes (from one hot), shape [minibatchSize, 1]
+      val nRows = features.rows
+      //Calculate the log probability for reconstructions as per An & Cho
+      //Higher is better, lower is worse
+      //Shape: [minibatchSize, 1]
+      var j = 0
+      while (j < nRows) {
+        val example = features.getRow(j)
+        val reconstructionErrorEachExample = vae.getOutputDistribution.negLogProbability(features, example, true)
+        val label = labels.getDouble(j: Long).toInt
+//        val score = reconstructionErrorEachExample.getDouble(j)
+        j += 1;
+      }
+    }
+
+
+    net
   }
 
   /**
