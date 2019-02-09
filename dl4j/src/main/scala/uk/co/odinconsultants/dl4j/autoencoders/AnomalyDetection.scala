@@ -25,7 +25,7 @@ object AnomalyDetection {
     val data = new ClusteredEventsData {
       override def bunched2SpreadRatio: Double = 0.01
 
-      override def N: Int = 6000
+      override def N: Int = 600
 
       override def timeSeriesSize: Int = 50
     }
@@ -33,18 +33,22 @@ object AnomalyDetection {
     val (train, test) = trainTest(Seq(xs), 0.9)
     val nClasses      = 2
     val nIn           = timeSeriesSize
-    val m             = model(nIn, nClasses)
+    val m             = model(nIn)
     val nEpochs       = 5
 
     val jTrain        = to2DDataset(train, nClasses, timeSeriesSize)
     val trainIter     = new ListDataSetIterator(jTrain.batchBy(1), 10)
 
-
-    val testDataSets  = test.map(x => to3DDataset(Seq(x), nClasses, data.timeSeriesSize, nIn)).toList.asJava
-    val testIter      = new ListDataSetIterator(testDataSets)
-
+    val testDataSets  = test.map(x => to2DDataset(Seq(x), nClasses, data.timeSeriesSize)).toList
+    val jTestDataSets = testDataSets.asJava
+    val testIter      = new ListDataSetIterator(jTestDataSets)
 
     m.pretrain(trainIter, nEpochs) // Note use ".pretrain(DataSetIterator) not fit(DataSetIterator) for unsupervised training"
+
+    testDataSets.foreach { ds =>
+      println(ds.getFeatures.length()) // "50"
+//      println(m.score(ds)) // Exception: Cannot calculate score if final layer is not an instance of IOutputLayer. Final layer is of type: o.d.n.l.v.VariationalAutoencoder
+    }
 
     m
   }
@@ -52,7 +56,7 @@ object AnomalyDetection {
   /**
     * Taken from Alex Black's VariationalAutoEncoderExample in DeepLearning4J examples.
     */
-  def model(nIn: Int, nClasses: Int): MultiLayerNetwork = {
+  def model(nIn: Int): MultiLayerNetwork = {
     val rngSeed = 12345
     val conf = new NeuralNetConfiguration.Builder()
       .seed(rngSeed)
@@ -62,19 +66,20 @@ object AnomalyDetection {
       .list()
       .layer(0, new VariationalAutoencoder.Builder()
         .activation(Activation.LEAKYRELU)
-        .encoderLayerSizes(256, 256)
-        .decoderLayerSizes(256, 256)
+        .encoderLayerSizes(nIn/2)
+        .decoderLayerSizes(nIn/2)
         .pzxActivationFunction(Activation.IDENTITY)  //p(z|data) activation function
         .reconstructionDistribution(new BernoulliReconstructionDistribution(Activation.SIGMOID.getActivationFunction()))     //Bernoulli distribution for p(data|z) (binary or 0 to 1 data only)
         .nIn(nIn)
-        .nOut(nClasses)
+        .nOut(nIn)
         .build())
 //      .pretrain(true) // doesn't affect training any more. Use org.deeplearning4j.nn.multilayer.MultiLayerNetwork#pretrain(DataSetIterator) when training for layerwise pretraining.
 //      .backprop(false) // doesn't affect training any more. Use org.deeplearning4j.nn.multilayer.MultiLayerNetwork#fit(DataSetIterator) when training for backprop.
       .build()
 
     val net = new MultiLayerNetwork(conf)
-    net.setListeners(new ScoreIterationListener(1))
+    net.init()
+    net.setListeners(new ScoreIterationListener(10))
     net
   }
 
