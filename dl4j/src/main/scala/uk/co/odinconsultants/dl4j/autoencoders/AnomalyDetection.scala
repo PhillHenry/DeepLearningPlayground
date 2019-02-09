@@ -10,7 +10,7 @@ import org.nd4j.linalg.activations.Activation
 import org.nd4j.linalg.learning.config.RmsProp
 import uk.co.odinconsultants.data.ClusteredEventsData
 import uk.co.odinconsultants.data.SamplingFunctions.trainTest
-import uk.co.odinconsultants.dl4j.MultiDimension.to3DDataset
+import uk.co.odinconsultants.dl4j.MultiDimension._
 
 import scala.collection.JavaConverters._
 
@@ -36,7 +36,7 @@ object AnomalyDetection {
     val m             = model(nIn, nClasses)
     val nEpochs       = 5
 
-    val jTrain        = to3DDataset(train, nClasses, data.timeSeriesSize, nIn)
+    val jTrain        = to2DDataset(train, nClasses, timeSeriesSize)
     val trainIter     = new ListDataSetIterator(jTrain.batchBy(1), 10)
 
 

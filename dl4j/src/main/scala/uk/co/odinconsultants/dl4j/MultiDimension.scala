@@ -26,4 +26,20 @@ object MultiDimension {
     new DataSet(features, labels)
   }
 
+  def to2DDataset(s2cs: Seq[Series2Cat], nClasses: Int, nFeatures: Int): DataSet = {
+    val nSamples  = s2cs.size
+    val features  = Nd4j.zeros(Array[Int](nSamples, nFeatures): _*)
+    val labels    = Nd4j.zeros(Array[Int](nSamples, nClasses): _*)
+
+    s2cs.zipWithIndex.foreach { case ((xs, c), i) =>
+      xs.zipWithIndex.foreach { case (x, j) =>
+        val indxFeatures: Array[Int] = Array(i, j)
+        features.putScalar(indxFeatures, x)
+      }
+      val indxLabels:   Array[Int] = Array(i, c)
+      labels.putScalar(indxLabels, 1)
+    }
+    new DataSet(features, labels)
+  }
+
 }
