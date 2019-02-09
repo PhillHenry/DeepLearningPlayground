@@ -50,12 +50,7 @@ object AnomalyDetection {
 
     net.pretrain(trainIter, nEpochs) // Note use ".pretrain(DataSetIterator) not fit(DataSetIterator) for unsupervised training"
 
-    testDataSets.foreach { ds =>
-      println(ds.getFeatures.length()) // "50"
-//      println(m.score(ds)) // Exception: Cannot calculate score if final layer is not an instance of IOutputLayer. Final layer is of type: o.d.n.l.v.VariationalAutoencoder
-    }
-
-    val vae = net.getLayer(0).asInstanceOf[VariationalAutoencoder]
+    val vae = net.getLayer(0).asInstanceOf[org.deeplearning4j.nn.layers.variational.VariationalAutoencoder]
 
     while (testIter.hasNext) {
       val ds = testIter.next
@@ -67,11 +62,12 @@ object AnomalyDetection {
       //Higher is better, lower is worse
       //Shape: [minibatchSize, 1]
       var j = 0
+      val reconstructionErrorEachExample = vae.reconstructionLogProbability(features, 16)
       while (j < nRows) {
         val example = features.getRow(j)
-        val reconstructionErrorEachExample = vae.getOutputDistribution.negLogProbability(features, example, true)
         val label = labels.getDouble(j: Long).toInt
-//        val score = reconstructionErrorEachExample.getDouble(j)
+        val score = reconstructionErrorEachExample.getDouble(j: Long)
+        println(s"score = " + score)
         j += 1;
       }
     }
