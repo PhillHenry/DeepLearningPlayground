@@ -2,6 +2,7 @@ package uk.co.odinconsultants.dl4j.autoencoders
 
 import org.deeplearning4j.datasets.iterator.impl.ListDataSetIterator
 import org.deeplearning4j.nn.conf.NeuralNetConfiguration
+import org.deeplearning4j.nn.conf.layers.variational
 import org.deeplearning4j.nn.conf.layers.variational.{BernoulliReconstructionDistribution, GaussianReconstructionDistribution, VariationalAutoencoder}
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork
 import org.deeplearning4j.nn.weights.WeightInit
@@ -30,7 +31,7 @@ object AnomalyDetection {
     val data = new ClusteredEventsData {
       override def bunched2SpreadRatio: Double = 0.01
 
-      override def N: Int = 2000
+      override def N: Int = 4000
 
       override def timeSeriesSize: Int = 50
     }
@@ -39,7 +40,7 @@ object AnomalyDetection {
     val nClasses      = 2
     val nIn           = timeSeriesSize
     val net           = model(nIn)
-    val nEpochs       = 10
+    val nEpochs       = 128
 
     val jTrain        = to2DDataset(train, nClasses, timeSeriesSize)
     val trainIter     = new ListDataSetIterator(jTrain.batchBy(1), 10)
@@ -51,6 +52,7 @@ object AnomalyDetection {
 
     val vae = net.getLayer(0).asInstanceOf[org.deeplearning4j.nn.layers.variational.VariationalAutoencoder]
 
+    val results = collection.mutable.Map[Int, List[Double]]().withDefault(_ => List())
     while (testIter.hasNext) {
       val ds        = testIter.next
       val features  = ds.getFeatures
@@ -68,13 +70,24 @@ object AnomalyDetection {
         val min = example.toDoubleVector.min
         val max = example.toDoubleVector.max
         val diff = ((max - min) / (3600 * 24)).toInt
+        results += label -> (results(label.toInt) :+ score)
         println(s"row #$j, label = $label: score = $score, diff = $diff") //, features = $features, example = $example")
         j += 1;
       }
     }
 
+    results.foreach { case (l, xs) =>
+      println(s"$l: mean = ${mean(xs)}, std dev = ${stdDev(xs)}, min = ${xs.min}, max = ${xs.max}")
+    }
 
     net
+  }
+
+  def mean(xs: List[Double]): Double = xs.sum / xs.length
+
+  def stdDev(xs: List[Double]): Double = {
+    val mu = mean(xs)
+    math.pow(xs.map(x => math.pow(x - mu, 2)).sum / (xs.length - 1), 0.5)
   }
 
   /**
@@ -83,11 +96,12 @@ object AnomalyDetection {
   def model(nIn: Int): MultiLayerNetwork = {
     val rngSeed         = 12345
     val hiddenLayerSize = nIn / 2
+
     val conf = new NeuralNetConfiguration.Builder()
       .seed(rngSeed)
-      .updater(new RmsProp(1e-2))
+      .updater(new RmsProp(1e-5))
       .weightInit(WeightInit.XAVIER)
-      .l2(1e-4)
+      .l2(1e-5)
       .list()
       .layer(0, new VariationalAutoencoder.Builder()
         .activation(Activation.LEAKYRELU)
@@ -102,7 +116,25 @@ object AnomalyDetection {
 
     val net = new MultiLayerNetwork(conf)
     net.init()
-    net.setListeners(new ScoreIterationListener(10))
+    net.setListeners(new ScoreIterationListener(100))
+
+    /* see https://deeplearning4j.org/docs/latest/deeplearning4j-nn-visualization */
+    import org.deeplearning4j.ui.api.UIServer
+    import org.deeplearning4j.ui.stats.StatsListener
+    import org.deeplearning4j.ui.storage.InMemoryStatsStorage
+    //Initialize the user interface backend
+    val uiServer = UIServer.getInstance
+
+    //Configure where the network information (gradients, score vs. time etc) is to be stored. Here: store in memory.
+    val statsStorage = new InMemoryStatsStorage //Alternative: new FileStatsStorage(File), for saving and loading later
+
+    //Attach the StatsStorage instance to the UI: this allows the contents of the StatsStorage to be visualized
+    uiServer.attach(statsStorage)
+
+    //Then add the StatsListener to collect this information from the network, as it trains
+    net.setListeners(new StatsListener(statsStorage), new ScoreIterationListener(100))
+
+
     net
   }
 
