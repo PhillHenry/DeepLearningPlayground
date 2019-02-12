@@ -40,7 +40,7 @@ object AnomalyDetection {
     val nClasses      = 2
     val nIn           = timeSeriesSize
     val net           = model(nIn)
-    val nEpochs       = 128
+    val nEpochs       = 48
 
     val jTrain        = to2DDataset(train, nClasses, timeSeriesSize)
     val trainIter     = new ListDataSetIterator(jTrain.batchBy(1), 10)
