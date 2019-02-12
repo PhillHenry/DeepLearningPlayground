@@ -30,7 +30,7 @@ object AnomalyDetection {
     val data = new ClusteredEventsData {
       override def bunched2SpreadRatio: Double = 0.01
 
-      override def N: Int = 600
+      override def N: Int = 2000
 
       override def timeSeriesSize: Int = 50
     }
@@ -39,35 +39,36 @@ object AnomalyDetection {
     val nClasses      = 2
     val nIn           = timeSeriesSize
     val net           = model(nIn)
-    val nEpochs       = 5
+    val nEpochs       = 10
 
     val jTrain        = to2DDataset(train, nClasses, timeSeriesSize)
     val trainIter     = new ListDataSetIterator(jTrain.batchBy(1), 10)
 
-    val testDataSets  = test.map(x => to2DDataset(Seq(x), nClasses, data.timeSeriesSize)).toList
-    val jTestDataSets = testDataSets.asJava
-    val testIter      = new ListDataSetIterator(jTestDataSets)
+    val testDataSets  = to2DDataset(test, nClasses, timeSeriesSize)
+    val testIter      = new ListDataSetIterator(testDataSets.batchBy(1), 10)
 
     net.pretrain(trainIter, nEpochs) // Note use ".pretrain(DataSetIterator) not fit(DataSetIterator) for unsupervised training"
 
     val vae = net.getLayer(0).asInstanceOf[org.deeplearning4j.nn.layers.variational.VariationalAutoencoder]
 
     while (testIter.hasNext) {
-      val ds = testIter.next
-      val features = ds.getFeatures
-      val labels = Nd4j.argMax(ds.getLabels, 1)
-      //Labels as integer indexes (from one hot), shape [minibatchSize, 1]
-      val nRows = features.rows
+      val ds        = testIter.next
+      val features  = ds.getFeatures
+      val labels    = Nd4j.argMax(ds.getLabels, 1)  //Labels as integer indexes (from one hot), shape [minibatchSize, 1]
+      val nRows     = features.rows
       //Calculate the log probability for reconstructions as per An & Cho
       //Higher is better, lower is worse
       //Shape: [minibatchSize, 1]
       var j = 0
-      val reconstructionErrorEachExample = vae.reconstructionLogProbability(features, 16)
+      val reconstructionErrorEachExample = vae.reconstructionLogProbability(features, 5)
       while (j < nRows) {
         val example = features.getRow(j)
         val label = labels.getDouble(j: Long).toInt
         val score = reconstructionErrorEachExample.getDouble(j: Long)
-        println(s"row #$j: score = $score")
+        val min = example.toDoubleVector.min
+        val max = example.toDoubleVector.max
+        val diff = ((max - min) / (3600 * 24)).toInt
+        println(s"row #$j, label = $label: score = $score, diff = $diff") //, features = $features, example = $example")
         j += 1;
       }
     }
