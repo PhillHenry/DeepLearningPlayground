@@ -2,7 +2,7 @@ package uk.co.odinconsultants.dl4j.autoencoders
 
 import org.deeplearning4j.datasets.iterator.impl.ListDataSetIterator
 import org.deeplearning4j.nn.conf.NeuralNetConfiguration
-import org.deeplearning4j.nn.conf.layers.variational.{BernoulliReconstructionDistribution, VariationalAutoencoder}
+import org.deeplearning4j.nn.conf.layers.variational.{BernoulliReconstructionDistribution, GaussianReconstructionDistribution, VariationalAutoencoder}
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork
 import org.deeplearning4j.nn.weights.WeightInit
 import org.deeplearning4j.optimize.listeners.ScoreIterationListener
@@ -67,7 +67,7 @@ object AnomalyDetection {
         val example = features.getRow(j)
         val label = labels.getDouble(j: Long).toInt
         val score = reconstructionErrorEachExample.getDouble(j: Long)
-        println(s"score = " + score)
+        println(s"row #$j: score = $score")
         j += 1;
       }
     }
@@ -80,7 +80,8 @@ object AnomalyDetection {
     * Taken from Alex Black's VariationalAutoEncoderExample in DeepLearning4J examples.
     */
   def model(nIn: Int): MultiLayerNetwork = {
-    val rngSeed = 12345
+    val rngSeed         = 12345
+    val hiddenLayerSize = nIn * 2
     val conf = new NeuralNetConfiguration.Builder()
       .seed(rngSeed)
       .updater(new RmsProp(1e-2))
@@ -89,15 +90,13 @@ object AnomalyDetection {
       .list()
       .layer(0, new VariationalAutoencoder.Builder()
         .activation(Activation.LEAKYRELU)
-        .encoderLayerSizes(nIn/2)
-        .decoderLayerSizes(nIn/2)
-        .pzxActivationFunction(Activation.IDENTITY)  //p(z|data) activation function
+        .encoderLayerSizes(hiddenLayerSize)
+        .decoderLayerSizes(hiddenLayerSize)
+        .pzxActivationFunction(Activation.SOFTMAX)  //p(z|data) activation function
         .reconstructionDistribution(new BernoulliReconstructionDistribution(Activation.SIGMOID.getActivationFunction()))     //Bernoulli distribution for p(data|z) (binary or 0 to 1 data only)
         .nIn(nIn)
         .nOut(nIn)
         .build())
-//      .pretrain(true) // doesn't affect training any more. Use org.deeplearning4j.nn.multilayer.MultiLayerNetwork#pretrain(DataSetIterator) when training for layerwise pretraining.
-//      .backprop(false) // doesn't affect training any more. Use org.deeplearning4j.nn.multilayer.MultiLayerNetwork#fit(DataSetIterator) when training for backprop.
       .build()
 
     val net = new MultiLayerNetwork(conf)
