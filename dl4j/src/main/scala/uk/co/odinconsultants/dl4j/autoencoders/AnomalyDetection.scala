@@ -2,7 +2,7 @@ package uk.co.odinconsultants.dl4j.autoencoders
 
 import org.deeplearning4j.datasets.iterator.impl.ListDataSetIterator
 import org.deeplearning4j.nn.conf.NeuralNetConfiguration
-import org.deeplearning4j.nn.conf.layers.variational
+import org.deeplearning4j.nn.conf.layers.{LSTM, RnnOutputLayer, variational}
 import org.deeplearning4j.nn.conf.layers.variational.{BernoulliReconstructionDistribution, GaussianReconstructionDistribution, VariationalAutoencoder}
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork
 import org.deeplearning4j.nn.weights.WeightInit
@@ -10,9 +10,12 @@ import org.deeplearning4j.optimize.listeners.ScoreIterationListener
 import org.nd4j.linalg.activations.Activation
 import org.nd4j.linalg.api.ndarray.INDArray
 import org.nd4j.linalg.dataset.api.DataSet
+import org.nd4j.linalg.dataset.api.preprocessor.NormalizerStandardize
 import org.nd4j.linalg.factory.Nd4j
 import org.nd4j.linalg.indexing.NDArrayIndex
 import org.nd4j.linalg.learning.config.RmsProp
+import org.nd4j.linalg.lossfunctions.LossFunctions
+import org.nd4j.linalg.lossfunctions.impl.LossNegativeLogLikelihood
 import org.nd4j.linalg.primitives.Pair
 import uk.co.odinconsultants.data.ClusteredEventsData
 import uk.co.odinconsultants.data.SamplingFunctions.trainTest
@@ -40,13 +43,21 @@ object AnomalyDetection {
     val nClasses      = 2
     val nIn           = timeSeriesSize
     val net           = model(nIn)
-    val nEpochs       = 48
+    val nEpochs       = 128
 
     val jTrain        = to2DDataset(train, nClasses, timeSeriesSize)
     val trainIter     = new ListDataSetIterator(jTrain.batchBy(1), 10)
 
     val testDataSets  = to2DDataset(test, nClasses, timeSeriesSize)
     val testIter      = new ListDataSetIterator(testDataSets.batchBy(1), 10)
+
+    val normalizer = new NormalizerStandardize
+    normalizer.fit(trainIter)
+
+    trainIter.reset()
+
+    trainIter.setPreProcessor(normalizer)
+    testIter.setPreProcessor(normalizer)
 
     net.pretrain(trainIter, nEpochs) // Note use ".pretrain(DataSetIterator) not fit(DataSetIterator) for unsupervised training"
 
@@ -96,6 +107,8 @@ object AnomalyDetection {
   def model(nIn: Int): MultiLayerNetwork = {
     val rngSeed         = 12345
     val hiddenLayerSize = nIn / 2
+    val nHidden         = 20
+    val nClasses        = 2
 
     val conf = new NeuralNetConfiguration.Builder()
       .seed(rngSeed)
@@ -103,6 +116,9 @@ object AnomalyDetection {
       .weightInit(WeightInit.XAVIER)
       .l2(1e-5)
       .list()
+//      .layer(0, new LSTM.Builder().activation(Activation.TANH).nIn(1).nOut(nHidden).build())
+//      .layer(1, new RnnOutputLayer.Builder(LossFunctions.LossFunction.MCXENT)
+//        .activation(Activation.SOFTMAX).nIn(nHidden).nOut(nClasses).lossFunction(new LossNegativeLogLikelihood(Nd4j.create(Array(0.005f, 1f)))).build())
       .layer(0, new VariationalAutoencoder.Builder()
         .activation(Activation.LEAKYRELU)
         .encoderLayerSizes(hiddenLayerSize)
