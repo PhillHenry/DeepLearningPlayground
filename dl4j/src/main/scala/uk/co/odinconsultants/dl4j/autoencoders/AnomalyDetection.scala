@@ -9,7 +9,7 @@ import org.deeplearning4j.nn.weights.WeightInit
 import org.deeplearning4j.optimize.listeners.ScoreIterationListener
 import org.nd4j.linalg.activations.Activation
 import org.nd4j.linalg.api.ndarray.INDArray
-import org.nd4j.linalg.dataset.api.DataSet
+import org.nd4j.linalg.dataset.DataSet
 import org.nd4j.linalg.dataset.api.preprocessor.NormalizerStandardize
 import org.nd4j.linalg.factory.Nd4j
 import org.nd4j.linalg.indexing.NDArrayIndex
@@ -32,7 +32,7 @@ object AnomalyDetection {
   def process(): MultiLayerNetwork = {
 
     val data = new ClusteredEventsData {
-      override def bunched2SpreadRatio: Double = 0.01
+      override def bunched2SpreadRatio: Double = 0.002
 
       override def N: Int = 4000
 
@@ -45,10 +45,10 @@ object AnomalyDetection {
     val net           = model(nIn)
     val nEpochs       = 128
 
-    val jTrain        = to2DDataset(train, nClasses, timeSeriesSize)
+    val jTrain        = to2DDataset(spread, nClasses, timeSeriesSize)
     val trainIter     = new ListDataSetIterator(jTrain.batchBy(1), 10)
 
-    val testDataSets  = to2DDataset(test, nClasses, timeSeriesSize)
+    val testDataSets  = to2DDataset(bunched, nClasses, timeSeriesSize)
     val testIter      = new ListDataSetIterator(testDataSets.batchBy(1), 10)
 
     val normalizer = new NormalizerStandardize
@@ -63,6 +63,22 @@ object AnomalyDetection {
 
     val vae = net.getLayer(0).asInstanceOf[org.deeplearning4j.nn.layers.variational.VariationalAutoencoder]
 
+    trainIter.reset()
+    println("Training:")
+    printResults(reconstructionCostsOf(trainIter, vae))
+    println("Testing:")
+    printResults(reconstructionCostsOf(testIter, vae))
+
+    net
+  }
+
+  def printResults(results: Map[Int, List[Double]]): Unit = {
+    results.foreach { case (l, xs) =>
+      println(s"$l: mean = ${mean(xs)}, std dev = ${stdDev(xs)}, min = ${xs.min}, max = ${xs.max}, size = ${xs.length} ${if (xs.length < 10) "[" + xs.sorted.mkString(", ") + "]" else ""}")
+    }
+  }
+
+  def reconstructionCostsOf(testIter: ListDataSetIterator[DataSet], vae: org.deeplearning4j.nn.layers.variational.VariationalAutoencoder): Map[Int, List[Double]] = {
     val results = collection.mutable.Map[Int, List[Double]]().withDefault(_ => List())
     while (testIter.hasNext) {
       val ds        = testIter.next
@@ -81,12 +97,7 @@ object AnomalyDetection {
         j += 1
       }
     }
-
-    results.foreach { case (l, xs) =>
-      println(s"$l: mean = ${mean(xs)}, std dev = ${stdDev(xs)}, min = ${xs.min}, max = ${xs.max}, size = ${xs.length} ${if (xs.length < 10) "[" + xs.sorted.mkString(", ") + "]" else ""}")
-    }
-
-    net
+    results.toMap
   }
 
   def mean(xs: List[Double]): Double = xs.sum / xs.length
