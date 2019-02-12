@@ -81,7 +81,7 @@ object AnomalyDetection {
     */
   def model(nIn: Int): MultiLayerNetwork = {
     val rngSeed         = 12345
-    val hiddenLayerSize = nIn * 2
+    val hiddenLayerSize = nIn / 2
     val conf = new NeuralNetConfiguration.Builder()
       .seed(rngSeed)
       .updater(new RmsProp(1e-2))
