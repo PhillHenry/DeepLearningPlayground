@@ -75,20 +75,15 @@ object AnomalyDetection {
       var j = 0
       val reconstructionErrorEachExample = vae.reconstructionLogProbability(features, 5)
       while (j < nRows) {
-        val example = features.getRow(j)
         val label = labels.getDouble(j: Long).toInt
         val score = reconstructionErrorEachExample.getDouble(j: Long)
-        val min = example.toDoubleVector.min
-        val max = example.toDoubleVector.max
-        val diff = ((max - min) / (3600 * 24)).toInt
         results += label -> (results(label.toInt) :+ score)
-        println(s"row #$j, label = $label: score = $score, diff = $diff") //, features = $features, example = $example")
-        j += 1;
+        j += 1
       }
     }
 
     results.foreach { case (l, xs) =>
-      println(s"$l: mean = ${mean(xs)}, std dev = ${stdDev(xs)}, min = ${xs.min}, max = ${xs.max}")
+      println(s"$l: mean = ${mean(xs)}, std dev = ${stdDev(xs)}, min = ${xs.min}, max = ${xs.max}, size = ${xs.length} ${if (xs.length < 10) "[" + xs.sorted.mkString(", ") + "]" else ""}")
     }
 
     net
