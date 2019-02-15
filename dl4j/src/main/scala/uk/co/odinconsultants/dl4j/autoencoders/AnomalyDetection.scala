@@ -13,6 +13,7 @@ import org.nd4j.linalg.dataset.DataSet
 import org.nd4j.linalg.dataset.api.preprocessor.NormalizerStandardize
 import org.nd4j.linalg.factory.Nd4j
 import org.nd4j.linalg.indexing.NDArrayIndex
+import org.nd4j.linalg.learning.config
 import org.nd4j.linalg.learning.config.{Adam, RmsProp}
 import org.nd4j.linalg.lossfunctions.LossFunctions
 import org.nd4j.linalg.lossfunctions.impl.LossNegativeLogLikelihood
@@ -43,7 +44,7 @@ object AnomalyDetection {
     val nClasses      = 2
     val nIn           = timeSeriesSize
     val net           = model(nIn)
-    val nEpochs       = 128
+    val nEpochs       = 100
 
     val jTrain        = to2DDataset(spread, nClasses, timeSeriesSize)
     val trainIter     = new ListDataSetIterator(jTrain.batchBy(1), 10)
@@ -125,7 +126,7 @@ object AnomalyDetection {
 
     val conf = new NeuralNetConfiguration.Builder()
       .seed(rngSeed)
-      .updater(new RmsProp(1e-5))
+      .updater(new config.Adam(1e-5))
       .weightInit(WeightInit.XAVIER)
       .l2(1e-5)
       .list()
@@ -133,7 +134,7 @@ object AnomalyDetection {
 //      .layer(1, new RnnOutputLayer.Builder(LossFunctions.LossFunction.MCXENT)
 //        .activation(Activation.SOFTMAX).nIn(nHidden).nOut(nClasses).lossFunction(new LossNegativeLogLikelihood(Nd4j.create(Array(0.005f, 1f)))).build())
       .layer(0, new VariationalAutoencoder.Builder()
-        .activation(Activation.LEAKYRELU)
+        .activation(Activation.THRESHOLDEDRELU) // CUBE 60%; HARDSIGMOID 68%; HARDTANH 64%; LEAKYRELU 76%; RATIONALTANH 64%; RECTIFIEDTANH 84%, 68%; RELU 64%; RELU6 56%; RRELU 56%; SELU 68%; SIGMOID 76%; SOFTMAX 72%; SOFTPLUS 68%; SOFTSIGN 80%; SWISH 60%; TANH 72%; THRESHOLDEDRELU 72%
         .encoderLayerSizes(hiddenLayerSize)
         .decoderLayerSizes(hiddenLayerSize)
         .pzxActivationFunction(Activation.SOFTMAX)  //p(z|data) activation function
