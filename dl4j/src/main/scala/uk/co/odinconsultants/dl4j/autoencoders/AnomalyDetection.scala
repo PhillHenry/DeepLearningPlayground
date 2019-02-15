@@ -121,6 +121,7 @@ object AnomalyDetection {
   def model(nIn: Int): MultiLayerNetwork = {
     val rngSeed         = 12345
     val hiddenLayerSize = nIn / 2
+    val hiddenLayerSize2 = hiddenLayerSize / 2
     val nHidden         = 20
     val nClasses        = 2
 
@@ -128,15 +129,15 @@ object AnomalyDetection {
       .seed(rngSeed)
       .updater(new config.Adam(1e-5))
       .weightInit(WeightInit.XAVIER)
-      .l2(1e-5)
+      .l2(1e-5) // RECTIFIEDTANH/1e-4: 84%, 56%/ 1e-6: 76%, 72%/ 1e-3: 64%, 72%/ 1e-2: 64%, 60%
       .list()
 //      .layer(0, new LSTM.Builder().activation(Activation.TANH).nIn(1).nOut(nHidden).build())
 //      .layer(1, new RnnOutputLayer.Builder(LossFunctions.LossFunction.MCXENT)
 //        .activation(Activation.SOFTMAX).nIn(nHidden).nOut(nClasses).lossFunction(new LossNegativeLogLikelihood(Nd4j.create(Array(0.005f, 1f)))).build())
       .layer(0, new VariationalAutoencoder.Builder()
-        .activation(Activation.THRESHOLDEDRELU) // CUBE 60%; HARDSIGMOID 68%; HARDTANH 64%; LEAKYRELU 76%; RATIONALTANH 64%; RECTIFIEDTANH 84%, 68%; RELU 64%; RELU6 56%; RRELU 56%; SELU 68%; SIGMOID 76%; SOFTMAX 72%; SOFTPLUS 68%; SOFTSIGN 80%; SWISH 60%; TANH 72%; THRESHOLDEDRELU 72%
-        .encoderLayerSizes(hiddenLayerSize)
-        .decoderLayerSizes(hiddenLayerSize)
+        .activation(Activation.RECTIFIEDTANH) // CUBE 60%; HARDSIGMOID 68%; HARDTANH 64%; LEAKYRELU 76%; RATIONALTANH 64%; RECTIFIEDTANH 84%, 68%, 76%; RELU 64%; RELU6 56%; RRELU 56%; SELU 68%; SIGMOID 76%; SOFTMAX 72%; SOFTPLUS 68%; SOFTSIGN 80%; SWISH 60%; TANH 72%; THRESHOLDEDRELU 72%
+        .encoderLayerSizes(hiddenLayerSize) // RECTIFIEDTANH, hiddenLayerSize2 76%
+        .decoderLayerSizes(hiddenLayerSize) // RECTIFIEDTANH, hiddenLayerSize2, 2, 68%
         .pzxActivationFunction(Activation.SOFTMAX)  //p(z|data) activation function
         .reconstructionDistribution(new BernoulliReconstructionDistribution(Activation.SIGMOID.getActivationFunction()))     //Bernoulli distribution for p(data|z) (binary or 0 to 1 data only)
         .nIn(nIn)
