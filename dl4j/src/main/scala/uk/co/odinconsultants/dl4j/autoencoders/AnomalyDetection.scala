@@ -129,7 +129,7 @@ object AnomalyDetection {
       .seed(rngSeed)
       .updater(new config.Adam(1e-5))
       .weightInit(WeightInit.XAVIER)
-      .l2(1e-5) // RECTIFIEDTANH/1e-4: 84%, 56%/ 1e-6: 76%, 72%/ 1e-3: 64%, 72%/ 1e-2: 64%, 60%
+      .l2(1e-1) // RECTIFIEDTANH/1e-4: 84%, 56%/ 1e-6: 76%, 72%/ 1e-3: 64%, 72%/ 1e-2: 64%, 60%/ 1e-1: 80%, 64%
       .list()
 //      .layer(0, new LSTM.Builder().activation(Activation.TANH).nIn(1).nOut(nHidden).build())
 //      .layer(1, new RnnOutputLayer.Builder(LossFunctions.LossFunction.MCXENT)
