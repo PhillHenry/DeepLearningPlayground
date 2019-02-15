@@ -13,7 +13,7 @@ import org.nd4j.linalg.dataset.DataSet
 import org.nd4j.linalg.dataset.api.preprocessor.NormalizerStandardize
 import org.nd4j.linalg.factory.Nd4j
 import org.nd4j.linalg.indexing.NDArrayIndex
-import org.nd4j.linalg.learning.config.RmsProp
+import org.nd4j.linalg.learning.config.{Adam, RmsProp}
 import org.nd4j.linalg.lossfunctions.LossFunctions
 import org.nd4j.linalg.lossfunctions.impl.LossNegativeLogLikelihood
 import org.nd4j.linalg.primitives.Pair
@@ -32,23 +32,23 @@ object AnomalyDetection {
   def process(): MultiLayerNetwork = {
 
     val data = new ClusteredEventsData {
-      override def bunched2SpreadRatio: Double = 0.01
+      override def bunched2SpreadRatio: Double = 0.0025
 
-      override def N: Int = 4000
+      override def N: Int = 10000
 
       override def timeSeriesSize: Int = 50
     }
     import data._
-    val (train, test) = trainTest(Seq(xs), 0.9)
+//    val (train, test) = trainTest(Seq(xs), 0.9)
     val nClasses      = 2
     val nIn           = timeSeriesSize
     val net           = model(nIn)
     val nEpochs       = 128
 
-    val jTrain        = to2DDataset(train, nClasses, timeSeriesSize)
+    val jTrain        = to2DDataset(spread, nClasses, timeSeriesSize)
     val trainIter     = new ListDataSetIterator(jTrain.batchBy(1), 10)
 
-    val testDataSets  = to2DDataset(test, nClasses, timeSeriesSize)
+    val testDataSets  = to2DDataset(bunched, nClasses, timeSeriesSize)
     val testIter      = new ListDataSetIterator(testDataSets.batchBy(1), 10)
 
     val normalizer = new NormalizerStandardize
@@ -65,16 +65,23 @@ object AnomalyDetection {
 
     trainIter.reset()
     println("Training:")
-    printResults(reconstructionCostsOf(trainIter, vae))
+    val trainStats = stats(reconstructionCostsOf(trainIter, vae))(SPREAD)
     println("Testing:")
-    printResults(reconstructionCostsOf(testIter, vae))
+    val testStats: Results = stats(reconstructionCostsOf(testIter, vae))(BUNCHED)
+    val validOutliers = testStats.costs.filter(x => x < trainStats.min || x > trainStats.max)
+    println(s"${validOutliers.length} of ${testStats.costs.length} are outliers (${validOutliers.length.toDouble * 100 / testStats.costs.length} %)")
 
     net
   }
 
-  def printResults(results: Map[Int, List[Double]]): Unit = {
-    results.foreach { case (l, xs) =>
-      println(s"$l: mean = ${mean(xs)}, std dev = ${stdDev(xs)}, min = ${xs.min}, max = ${xs.max}, size = ${xs.length} ${if (xs.length < 10) "[" + xs.sorted.mkString(", ") + "]" else ""}")
+  case class Results(mu: Double, sd: Double, min: Double, max: Double, n: Int, costs: List[Double])
+
+  def stats(results: Map[Int, List[Double]]): Map[Int, Results] = {
+    results.map { case (l, xs) =>
+      val x = Results(mean(xs), stdDev(xs), xs.min, xs.max, xs.length, xs)
+      import x._
+      println(s"$l: mean = $mu, std dev = $sd, min = $min, max = $max, size = $n ${if (n < 10) "[" + xs.sorted.mkString(", ") + "]" else ""}")
+      l -> x
     }
   }
 
