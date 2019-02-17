@@ -1,5 +1,7 @@
 package uk.co.odinconsultants.dl4j.autoencoders
 
+import java.io.{FileOutputStream, FileWriter}
+
 import org.deeplearning4j.datasets.iterator.impl.ListDataSetIterator
 import org.deeplearning4j.nn.conf.NeuralNetConfiguration
 import org.deeplearning4j.nn.conf.layers.{LSTM, RnnOutputLayer, variational}
@@ -24,6 +26,7 @@ import uk.co.odinconsultants.data.SamplingFunctions.trainTest
 import uk.co.odinconsultants.dl4j.MultiDimension._
 
 import scala.collection.JavaConverters._
+import scala.io.Source
 
 object AnomalyDetection {
 
@@ -62,10 +65,17 @@ object AnomalyDetection {
 
     println("===============================")
 
-    results.toList.sortBy(_._1.toString).foreach { case (a, xs) =>
+    val stats = results.toList.sortBy(_._1.toString).map { case (a, xs) =>
       val ns = xs.map(_.toDouble)
-      println(s"$a: mu = ${mean(ns)} sd = ${stdDev(ns)}")
+      val mu = mean(ns)
+      val sd = stdDev(ns)
+      println(s"$a: mu = $mu sd = $sd")
+      (a, mu, sd)
     }
+    
+    val fos = new FileWriter("/tmp/results.txt")
+    fos.write(stats.map { case (a, mu, sd) => s"$a,$mu,$sd" }.mkString("\n"))
+    fos.close()
   }
 
   type Data = ListDataSetIterator[DataSet]
