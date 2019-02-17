@@ -164,7 +164,7 @@ object AnomalyDetection {
 //      .layer(1, new RnnOutputLayer.Builder(LossFunctions.LossFunction.MCXENT)
 //        .activation(Activation.SOFTMAX).nIn(nHidden).nOut(nClasses).lossFunction(new LossNegativeLogLikelihood(Nd4j.create(Array(0.005f, 1f)))).build())
       .layer(0, new VariationalAutoencoder.Builder()
-        .activation(Activation.RECTIFIEDTANH) // CUBE 60%; HARDSIGMOID 68%; HARDTANH 64%; LEAKYRELU 76%; RATIONALTANH 64%; RECTIFIEDTANH 84%, 68%, 76%; RELU 64%; RELU6 56%; RRELU 56%; SELU 68%; SIGMOID 76%; SOFTMAX 72%; SOFTPLUS 68%; SOFTSIGN 80%; SWISH 60%; TANH 72%; THRESHOLDEDRELU 72%
+        .activation(activation) // CUBE 60%; HARDSIGMOID 68%; HARDTANH 64%; LEAKYRELU 76%; RATIONALTANH 64%; RECTIFIEDTANH 84%, 68%, 76%; RELU 64%; RELU6 56%; RRELU 56%; SELU 68%; SIGMOID 76%; SOFTMAX 72%; SOFTPLUS 68%; SOFTSIGN 80%; SWISH 60%; TANH 72%; THRESHOLDEDRELU 72%
         .encoderLayerSizes(hiddenLayerSize) // RECTIFIEDTANH, hiddenLayerSize2 76%
         .decoderLayerSizes(hiddenLayerSize) // RECTIFIEDTANH, hiddenLayerSize2, 2, 68%
         .pzxActivationFunction(Activation.SOFTMAX)  //p(z|data) activation function
