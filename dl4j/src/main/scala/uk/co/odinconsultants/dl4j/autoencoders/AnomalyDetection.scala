@@ -72,7 +72,7 @@ object AnomalyDetection {
       println(s"$a: mu = $mu sd = $sd")
       (a, mu, sd)
     }
-    
+
     val fos = new FileWriter("/tmp/results.txt")
     fos.write(stats.map { case (a, mu, sd) => s"$a,$mu,$sd" }.mkString("\n"))
     fos.close()
@@ -187,6 +187,13 @@ object AnomalyDetection {
     net.init()
     net.setListeners(new ScoreIterationListener(100))
 
+    net.addListeners(new ScoreIterationListener(100))
+
+    net
+  }
+
+  def uiServerListensTo(net: MultiLayerNetwork): Unit = {
+
     /* see https://deeplearning4j.org/docs/latest/deeplearning4j-nn-visualization */
     import org.deeplearning4j.ui.api.UIServer
     import org.deeplearning4j.ui.stats.StatsListener
@@ -201,10 +208,8 @@ object AnomalyDetection {
     uiServer.attach(statsStorage)
 
     //Then add the StatsListener to collect this information from the network, as it trains
-    net.setListeners(new StatsListener(statsStorage), new ScoreIterationListener(100))
+    net.addListeners(new StatsListener(statsStorage))
 
-
-    net
   }
 
 
