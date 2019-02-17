@@ -48,7 +48,7 @@ object AnomalyDetection {
     for (activation <- Activation.CUBE.getDeclaringClass.getEnumConstants) {
       println(s"Activation: $activation")
       for (i <- 1 to nSamples) {
-        val net                   = model(data.timeSeriesSize, activation)
+        val net                   = model(data.timeSeriesSize, activation, i.toLong)
         val (trainIter, testIter) = trainTestData(data)
 
         net.pretrain(trainIter, nEpochs) // Note use ".pretrain(DataSetIterator) not fit(DataSetIterator) for unsupervised training"
@@ -147,8 +147,7 @@ object AnomalyDetection {
   /**
     * Taken from Alex Black's VariationalAutoEncoderExample in DeepLearning4J examples.
     */
-  def model(nIn: Int, activation: Activation): MultiLayerNetwork = {
-    val rngSeed         = 12345
+  def model(nIn: Int, activation: Activation, rngSeed: Long): MultiLayerNetwork = {
     val hiddenLayerSize = nIn / 2
     val hiddenLayerSize2 = hiddenLayerSize / 2
     val nHidden         = 20
