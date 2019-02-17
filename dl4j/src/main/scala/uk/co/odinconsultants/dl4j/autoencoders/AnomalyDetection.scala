@@ -7,6 +7,7 @@ import org.deeplearning4j.nn.conf.layers.variational.{BernoulliReconstructionDis
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork
 import org.deeplearning4j.nn.weights.WeightInit
 import org.deeplearning4j.optimize.listeners.ScoreIterationListener
+import org.deeplearning4j.nn.layers.variational.{VariationalAutoencoder => VAE}
 import org.nd4j.linalg.activations.Activation
 import org.nd4j.linalg.api.ndarray.INDArray
 import org.nd4j.linalg.dataset.DataSet
@@ -30,7 +31,8 @@ object AnomalyDetection {
     println(process())
   }
 
-  def process(): MultiLayerNetwork = {
+
+  def process(): Unit = {
 
     val data = new ClusteredEventsData {
       override def bunched2SpreadRatio: Double = 0.0025
@@ -39,12 +41,39 @@ object AnomalyDetection {
 
       override def timeSeriesSize: Int = 50
     }
+
+    val nEpochs   = 100
+    val nSamples  = 10
+    val results   = collection.mutable.Map[Activation, Seq[Int]]().withDefault(_ => Seq.empty)
+    for (activation <- Activation.CUBE.getDeclaringClass.getEnumConstants) {
+      println(s"Activation: $activation")
+      for (i <- 1 to nSamples) {
+        val net                   = model(data.timeSeriesSize, activation)
+        val (trainIter, testIter) = trainTestData(data)
+
+        net.pretrain(trainIter, nEpochs) // Note use ".pretrain(DataSetIterator) not fit(DataSetIterator) for unsupervised training"
+
+        val vae       = net.getLayer(0).asInstanceOf[VAE]
+        val outliers  = testNetwork(vae, trainIter, testIter)
+        results      += activation -> (results(activation) :+ outliers.length)
+        println(s"Number of outliers: ${outliers.length}")
+      }
+    }
+
+    println("===============================")
+
+    results.toList.sortBy(_._1.toString).foreach { case (a, xs) =>
+      val ns = xs.map(_.toDouble)
+      println(s"$a: mu = ${mean(ns)} sd = ${stdDev(ns)}")
+    }
+  }
+
+  type Data = ListDataSetIterator[DataSet]
+
+  def trainTestData(data: ClusteredEventsData): (Data, Data) = {
     import data._
-//    val (train, test) = trainTest(Seq(xs), 0.9)
+    //    val (train, test) = trainTest(Seq(xs), 0.9)
     val nClasses      = 2
-    val nIn           = timeSeriesSize
-    val net           = model(nIn)
-    val nEpochs       = 100
 
     val jTrain        = to2DDataset(spread, nClasses, timeSeriesSize)
     val trainIter     = new ListDataSetIterator(jTrain.batchBy(1), 10)
@@ -60,19 +89,19 @@ object AnomalyDetection {
     trainIter.setPreProcessor(normalizer)
     testIter.setPreProcessor(normalizer)
 
-    net.pretrain(trainIter, nEpochs) // Note use ".pretrain(DataSetIterator) not fit(DataSetIterator) for unsupervised training"
+    (trainIter, testIter)
+  }
 
-    val vae = net.getLayer(0).asInstanceOf[org.deeplearning4j.nn.layers.variational.VariationalAutoencoder]
-
+  def testNetwork(vae: VAE, trainIter: Data, testIter: Data): Seq[Double] = {
     trainIter.reset()
     println("Training:")
-    val trainStats = stats(reconstructionCostsOf(trainIter, vae))(SPREAD)
+    val trainStats = stats(reconstructionCostsOf(trainIter, vae)).head._2
     println("Testing:")
-    val testStats: Results = stats(reconstructionCostsOf(testIter, vae))(BUNCHED)
+    val testStats: Results = stats(reconstructionCostsOf(testIter, vae)).head._2
     val validOutliers = testStats.costs.filter(x => x < trainStats.min || x > trainStats.max)
     println(s"${validOutliers.length} of ${testStats.costs.length} are outliers (${validOutliers.length.toDouble * 100 / testStats.costs.length} %)")
 
-    net
+    validOutliers
   }
 
   case class Results(mu: Double, sd: Double, min: Double, max: Double, n: Int, costs: List[Double])
@@ -86,7 +115,7 @@ object AnomalyDetection {
     }
   }
 
-  def reconstructionCostsOf(iter: ListDataSetIterator[DataSet], vae: org.deeplearning4j.nn.layers.variational.VariationalAutoencoder): Map[Int, List[Double]] = {
+  def reconstructionCostsOf(iter: ListDataSetIterator[DataSet], vae: VAE): Map[Int, List[Double]] = {
     val results = collection.mutable.Map[Int, List[Double]]().withDefault(_ => List())
     while (iter.hasNext) {
       val ds        = iter.next
@@ -108,9 +137,9 @@ object AnomalyDetection {
     results.toMap
   }
 
-  def mean(xs: List[Double]): Double = xs.sum / xs.length
+  def mean(xs: Seq[Double]): Double = xs.sum / xs.length
 
-  def stdDev(xs: List[Double]): Double = {
+  def stdDev(xs: Seq[Double]): Double = {
     val mu = mean(xs)
     math.pow(xs.map(x => math.pow(x - mu, 2)).sum / (xs.length - 1), 0.5)
   }
@@ -118,7 +147,7 @@ object AnomalyDetection {
   /**
     * Taken from Alex Black's VariationalAutoEncoderExample in DeepLearning4J examples.
     */
-  def model(nIn: Int): MultiLayerNetwork = {
+  def model(nIn: Int, activation: Activation): MultiLayerNetwork = {
     val rngSeed         = 12345
     val hiddenLayerSize = nIn / 2
     val hiddenLayerSize2 = hiddenLayerSize / 2
