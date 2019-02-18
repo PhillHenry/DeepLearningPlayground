@@ -27,6 +27,7 @@ import uk.co.odinconsultants.dl4j.MultiDimension._
 
 import scala.collection.JavaConverters._
 import scala.io.Source
+import scala.util.Try
 
 object AnomalyDetection {
 
@@ -59,7 +60,9 @@ object AnomalyDetection {
         val vae       = net.getLayer(0).asInstanceOf[VAE]
         val outliers  = testNetwork(vae, trainIter, testIter)
         results      += activation -> (results(activation) :+ outliers.length)
-        println(s"Number of outliers: ${outliers.length}")
+        println(s"$i: Number of outliers: ${outliers.length}")
+        net.clear()
+//        Nd4j.getMemoryManager.purgeCaches() // UnsupportedOperationException
       }
     }
 
@@ -143,6 +146,9 @@ object AnomalyDetection {
         results += label -> (results(label.toInt) :+ score)
         j += 1
       }
+      Try { features.close() }
+      Try { reconstructionErrorEachExample.close() }
+      Try { labels.close() }
     }
     results.toMap
   }
@@ -185,9 +191,7 @@ object AnomalyDetection {
 
     val net = new MultiLayerNetwork(conf)
     net.init()
-    net.setListeners(new ScoreIterationListener(100))
-
-    net.addListeners(new ScoreIterationListener(100))
+    net.addListeners(new ScoreIterationListener(1000))
 
     net
   }
