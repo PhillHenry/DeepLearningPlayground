@@ -14,7 +14,7 @@ import org.nd4j.linalg.activations.Activation
 import org.nd4j.linalg.api.ndarray.INDArray
 import org.nd4j.linalg.dataset.DataSet
 import org.nd4j.linalg.dataset.api.preprocessor.NormalizerStandardize
-import org.nd4j.linalg.factory.Nd4j
+import org.nd4j.linalg.factory.{Nd4j, CpuBackendNd4jPurger}
 import org.nd4j.linalg.indexing.NDArrayIndex
 import org.nd4j.linalg.learning.config
 import org.nd4j.linalg.learning.config.{Adam, RmsProp}
@@ -52,6 +52,7 @@ object AnomalyDetection {
     for (activation <- Activation.CUBE.getDeclaringClass.getEnumConstants) {
       println(s"Activation: $activation")
       for (i <- 1 to nSamples) {
+        CpuBackendNd4jPurger.purge()
         val net                   = model(data.timeSeriesSize, activation, i.toLong)
         val (trainIter, testIter) = trainTestData(data)
 
