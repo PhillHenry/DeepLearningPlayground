@@ -14,7 +14,7 @@ import org.nd4j.linalg.activations.Activation
 import org.nd4j.linalg.api.ndarray.INDArray
 import org.nd4j.linalg.dataset.DataSet
 import org.nd4j.linalg.dataset.api.preprocessor.NormalizerStandardize
-import org.nd4j.linalg.factory.{Nd4j, CpuBackendNd4jPurger}
+import org.nd4j.linalg.factory.{CpuBackendNd4jPurger, Nd4j}
 import org.nd4j.linalg.indexing.NDArrayIndex
 import org.nd4j.linalg.learning.config
 import org.nd4j.linalg.learning.config.{Adam, RmsProp}
@@ -61,21 +61,33 @@ object AnomalyDetection {
         val vae       = net.getLayer(0).asInstanceOf[VAE]
         val outliers  = testNetwork(vae, trainIter, testIter)
         results      += activation -> (results(activation) :+ outliers.length)
-        println(s"$i: Number of outliers: ${outliers.length}")
+        println(s"[${new java.util.Date()}]: Sample #$i: Number of outliers: ${outliers.length}")
         net.clear()
 //        Nd4j.getMemoryManager.purgeCaches() // UnsupportedOperationException
       }
+      val activationStats = statsFor(activation, results(activation))
+      printResult(activationStats)
     }
 
     println("===============================")
 
-    val stats = results.toList.sortBy(_._1.toString).map { case (a, xs) =>
+    def statsFor(a: Activation, xs: Seq[Int]): (Activation, Double, Double) = {
       val ns = xs.map(_.toDouble)
       val mu = mean(ns)
       val sd = stdDev(ns)
-      println(s"$a: mu = $mu sd = $sd")
       (a, mu, sd)
     }
+
+    def printResult(result: (Activation, Double, Double)): Unit = {
+      val (a, mu, sd) = result
+      println(s"$a: mu = $mu sd = $sd")
+    }
+
+    val stats = results.toList.sortBy(_._1.toString).map { case (a, xs) =>
+      statsFor(a, xs)
+    }
+
+    stats foreach printResult
 
     val fos = new FileWriter("/tmp/results.txt")
     fos.write(stats.map { case (a, mu, sd) => s"$a,$mu,$sd" }.mkString("\n"))
