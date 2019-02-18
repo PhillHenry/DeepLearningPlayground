@@ -1,32 +1,22 @@
 package uk.co.odinconsultants.dl4j.autoencoders
 
-import java.io.{FileOutputStream, FileWriter}
+import java.io.FileWriter
 
 import org.deeplearning4j.datasets.iterator.impl.ListDataSetIterator
 import org.deeplearning4j.nn.conf.NeuralNetConfiguration
-import org.deeplearning4j.nn.conf.layers.{LSTM, RnnOutputLayer, variational}
-import org.deeplearning4j.nn.conf.layers.variational.{BernoulliReconstructionDistribution, GaussianReconstructionDistribution, VariationalAutoencoder}
+import org.deeplearning4j.nn.conf.layers.variational.{BernoulliReconstructionDistribution, VariationalAutoencoder}
+import org.deeplearning4j.nn.layers.variational.{VariationalAutoencoder => VAE}
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork
 import org.deeplearning4j.nn.weights.WeightInit
 import org.deeplearning4j.optimize.listeners.ScoreIterationListener
-import org.deeplearning4j.nn.layers.variational.{VariationalAutoencoder => VAE}
 import org.nd4j.linalg.activations.Activation
-import org.nd4j.linalg.api.ndarray.INDArray
 import org.nd4j.linalg.dataset.DataSet
 import org.nd4j.linalg.dataset.api.preprocessor.NormalizerStandardize
 import org.nd4j.linalg.factory.{CpuBackendNd4jPurger, Nd4j}
-import org.nd4j.linalg.indexing.NDArrayIndex
 import org.nd4j.linalg.learning.config
-import org.nd4j.linalg.learning.config.{Adam, RmsProp}
-import org.nd4j.linalg.lossfunctions.LossFunctions
-import org.nd4j.linalg.lossfunctions.impl.LossNegativeLogLikelihood
-import org.nd4j.linalg.primitives.Pair
 import uk.co.odinconsultants.data.ClusteredEventsData
-import uk.co.odinconsultants.data.SamplingFunctions.trainTest
 import uk.co.odinconsultants.dl4j.MultiDimension._
 
-import scala.collection.JavaConverters._
-import scala.io.Source
 import scala.util.Try
 
 object AnomalyDetection {
@@ -34,7 +24,6 @@ object AnomalyDetection {
   def main(args: Array[String]): Unit = {
     println(process())
   }
-
 
   def process(): Unit = {
 
@@ -72,7 +61,7 @@ object AnomalyDetection {
     println("===============================")
 
     def statsFor(a: Activation, xs: Seq[Int]): (Activation, Double, Double) = {
-      val ns = xs.map(_.toDouble)
+      val ns = xs.map(_.toDouble).filterNot(_ == 0d) // the DL4J guys warned me against purging (they say a fix is coming soon). In the meantime I sometimes see 0s. Ignore.
       val mu = mean(ns)
       val sd = stdDev(ns)
       (a, mu, sd)
@@ -175,6 +164,15 @@ object AnomalyDetection {
 
   /**
     * Taken from Alex Black's VariationalAutoEncoderExample in DeepLearning4J examples.
+    * Out of 25:
+    * CUBE:         mu = 12.777777777777779 sd = 0.9718253158075499
+    * ELU:          mu = 14.6               sd = 0.6992058987801011
+    * HARDSIGMOID:  mu = 15.0               sd = 0.0
+    * HARDTANH:     mu = 14.5               sd = 0.5270462766947299
+    * IDENTITY:     mu = 13.9               sd = 0.875595035770913
+    * LEAKYRELU:    mu = 14.7               sd = 0.48304589153964794
+    * RATIONALTANH: mu = 14.3               sd = 0.48304589153964794
+    * RELU:         mu = 14.7               sd = 0.48304589153964794
     */
   def model(nIn: Int, activation: Activation, rngSeed: Long): MultiLayerNetwork = {
     val hiddenLayerSize = nIn / 2
@@ -192,7 +190,7 @@ object AnomalyDetection {
 //      .layer(1, new RnnOutputLayer.Builder(LossFunctions.LossFunction.MCXENT)
 //        .activation(Activation.SOFTMAX).nIn(nHidden).nOut(nClasses).lossFunction(new LossNegativeLogLikelihood(Nd4j.create(Array(0.005f, 1f)))).build())
       .layer(0, new VariationalAutoencoder.Builder()
-        .activation(activation) // CUBE 60%; HARDSIGMOID 68%; HARDTANH 64%; LEAKYRELU 76%; RATIONALTANH 64%; RECTIFIEDTANH 84%, 68%, 76%; RELU 64%; RELU6 56%; RRELU 56%; SELU 68%; SIGMOID 76%; SOFTMAX 72%; SOFTPLUS 68%; SOFTSIGN 80%; SWISH 60%; TANH 72%; THRESHOLDEDRELU 72%
+        .activation(activation)
         .encoderLayerSizes(hiddenLayerSize) // RECTIFIEDTANH, hiddenLayerSize2 76%
         .decoderLayerSizes(hiddenLayerSize) // RECTIFIEDTANH, hiddenLayerSize2, 2, 68%
         .pzxActivationFunction(Activation.SOFTMAX)  //p(z|data) activation function
