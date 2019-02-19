@@ -35,39 +35,43 @@ object AnomalyDetection {
       override def timeSeriesSize: Int = 50
     }
 
-    val nEpochs   = 100
-    val nSamples  = 10
-    val results   = collection.mutable.Map[Activation, Seq[Int]]().withDefault(_ => Seq.empty)
-    for (activation <- Activation.CUBE.getDeclaringClass.getEnumConstants) {
-      println(s"Activation: $activation")
+    val nEpochs     = 100
+    val nSamples    = 5
+    type Axis       = Double
+    val results     = collection.mutable.Map[Axis, Seq[Int]]().withDefault(_ => Seq.empty)
+    val activation  = Activation.SWISH
+    for (x <- -2 to 5) {
+      val l2 = math.pow(10, -x)
+      println(s"l2: $l2")
       for (i <- 1 to nSamples) {
         CpuBackendNd4jPurger.purge()
-        val net                   = model(data.timeSeriesSize, activation, i.toLong)
+        val net                   = model(data.timeSeriesSize, activation, i.toLong, l2)
         val (trainIter, testIter) = trainTestData(data)
 
-        net.pretrain(trainIter, nEpochs) // Note use ".pretrain(DataSetIterator) not fit(DataSetIterator) for unsupervised training"
+        net.pretrain(trainIter, nEpochs)
 
         val vae       = net.getLayer(0).asInstanceOf[VAE]
         val outliers  = testNetwork(vae, trainIter, testIter)
-        results      += activation -> (results(activation) :+ outliers.length)
+        results      += l2 -> (results(l2) :+ outliers.length)
         println(s"[${new java.util.Date()}]: Sample #$i: Number of outliers: ${outliers.length}")
         net.clear()
-//        Nd4j.getMemoryManager.purgeCaches() // UnsupportedOperationException
       }
-      val activationStats = statsFor(activation, results(activation))
+      val activationStats = statsFor(l2, results(l2))
       printResult(activationStats)
     }
 
     println("===============================")
 
-    def statsFor(a: Activation, xs: Seq[Int]): (Activation, Double, Double) = {
+    type RunStat  = (Axis, Double, Double)
+
+    def statsFor(a: Axis, xs: Seq[Int]): RunStat = {
       val ns = xs.map(_.toDouble).filterNot(_ == 0d) // the DL4J guys warned me against purging (they say a fix is coming soon). In the meantime I sometimes see 0s. Ignore.
       val mu = mean(ns)
       val sd = stdDev(ns)
       (a, mu, sd)
     }
 
-    def printResult(result: (Activation, Double, Double)): Unit = {
+    def printResult(result: RunStat): Unit = {
       val (a, mu, sd) = result
       println(s"$a: mu = $mu sd = $sd")
     }
@@ -164,31 +168,17 @@ object AnomalyDetection {
 
   /**
     * Taken from Alex Black's VariationalAutoEncoderExample in DeepLearning4J examples.
-    * Out of 25:
-    * CUBE:         mu = 12.777777777777779 sd = 0.9718253158075499
-    * ELU:          mu = 14.6               sd = 0.6992058987801011
-    * HARDSIGMOID:  mu = 15.0               sd = 0.0
-    * HARDTANH:     mu = 14.5               sd = 0.5270462766947299
-    * IDENTITY:     mu = 13.9               sd = 0.875595035770913
-    *
-    * LEAKYRELU:    mu = 14.7               sd = 0.48304589153964794
-    * RATIONALTANH: mu = 14.3               sd = 0.48304589153964794
-    * RELU:         mu = 14.7               sd = 0.48304589153964794
-    * RELU6:        mu = 14.7               sd = 0.48304589153964794
-    * RRELU:        mu = 14.5               sd = 0.5270462766947299
-    *
-    * SIGMOID:      mu = 15.0               sd = 0.0
-    * SOFTMAX:      mu = 15.0               sd = 0.0
-    * SOFTPLUS:     mu = 14.7               sd = 0.6749485577105528
-    * SOFTSIGN:     mu = 14.9               sd = 0.31622776601683794
-    * TANH:         mu = 14.5               sd = 0.5270462766947299
-    *
-    * RECTIFIEDTANH: mu = 14.9              sd = 0.31622776601683794
-    * SELU:         mu = 14.5               sd = 0.5270462766947299
-    * SWISH:        mu = 15.0               sd = 0.4714045207910317
-    * THRESHOLDEDRELU: mu = 14.8            sd = 0.7888106377466155
+    * CV with different L2 values:
+    * 1.0E-5: mu = 15.2 sd = 0.8366600265340756
+    * 1.0E-4: mu = 15.2 sd = 0.8366600265340756
+    * 0.001:  mu = 15.2 sd = 0.8366600265340756
+    * 0.01:   mu = 15.2 sd = 0.8366600265340756
+    * 0.1:    mu = 16.0 sd = 0.7071067811865476
+    * 1.0:    mu = 16.2 sd = 0.4472135954999579
+    * 10.0:   mu = 16.0 sd = 0.0
+    * 100.0:  mu = 16.0 sd = 0.0
     */
-  def model(nIn: Int, activation: Activation, rngSeed: Long): MultiLayerNetwork = {
+  def model(nIn: Int, activation: Activation, rngSeed: Long, l2: Double): MultiLayerNetwork = {
     val hiddenLayerSize = nIn / 2
     val hiddenLayerSize2 = hiddenLayerSize / 2
     val nHidden         = 20
@@ -198,7 +188,7 @@ object AnomalyDetection {
       .seed(rngSeed)
       .updater(new config.Adam(1e-5))
       .weightInit(WeightInit.XAVIER)
-      .l2(1e-1) // RECTIFIEDTANH/1e-4: 84%, 56%/ 1e-6: 76%, 72%/ 1e-3: 64%, 72%/ 1e-2: 64%, 60%/ 1e-1: 80%, 64%
+      .l2(l2)
       .list()
 //      .layer(0, new LSTM.Builder().activation(Activation.TANH).nIn(1).nOut(nHidden).build())
 //      .layer(1, new RnnOutputLayer.Builder(LossFunctions.LossFunction.MCXENT)
