@@ -173,6 +173,13 @@ object AnomalyDetection {
     * LEAKYRELU:    mu = 14.7               sd = 0.48304589153964794
     * RATIONALTANH: mu = 14.3               sd = 0.48304589153964794
     * RELU:         mu = 14.7               sd = 0.48304589153964794
+    * RELU6:        mu = 14.7               sd = 0.48304589153964794
+    * RRELU:        mu = 14.5               sd = 0.5270462766947299
+    * SIGMOID:      mu = 15.0               sd = 0.0
+    * SOFTMAX:      mu = 15.0               sd = 0.0
+    * SOFTPLUS:     mu = 14.7               sd = 0.6749485577105528
+    * SOFTSIGN:     mu = 14.9               sd = 0.31622776601683794
+    * TANH:         mu = 14.5               sd = 0.5270462766947299
     */
   def model(nIn: Int, activation: Activation, rngSeed: Long): MultiLayerNetwork = {
     val hiddenLayerSize = nIn / 2
