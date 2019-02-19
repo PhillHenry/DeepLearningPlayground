@@ -186,6 +186,7 @@ object AnomalyDetection {
     * RECTIFIEDTANH: mu = 14.9              sd = 0.31622776601683794
     * SELU:         mu = 14.5               sd = 0.5270462766947299
     * SWISH:        mu = 15.0               sd = 0.4714045207910317
+    * THRESHOLDEDRELU: mu = 14.8            sd = 0.7888106377466155
     */
   def model(nIn: Int, activation: Activation, rngSeed: Long): MultiLayerNetwork = {
     val hiddenLayerSize = nIn / 2
