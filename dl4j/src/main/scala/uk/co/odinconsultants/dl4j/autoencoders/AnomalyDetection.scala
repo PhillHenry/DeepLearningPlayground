@@ -41,7 +41,7 @@ object AnomalyDetection {
     val results     = collection.mutable.Map[Axis, Seq[Int]]().withDefault(_ => Seq.empty)
     val activation  = Activation.SWISH
     val l2          = 1
-    for (x <- 0 to 5) {
+    for (x <- 6 to 9) {
       val batch = math.pow(2, x)
       println(s"batch: $batch")
       for (i <- 1 to nSamples) {
@@ -169,15 +169,15 @@ object AnomalyDetection {
 
   /**
     * Taken from Alex Black's VariationalAutoEncoderExample in DeepLearning4J examples.
-    * CV with different L2 values:
-    * 1.0E-5: mu = 15.2 sd = 0.8366600265340756
-    * 1.0E-4: mu = 15.2 sd = 0.8366600265340756
-    * 0.001:  mu = 15.2 sd = 0.8366600265340756
-    * 0.01:   mu = 15.2 sd = 0.8366600265340756
-    * 0.1:    mu = 16.0 sd = 0.7071067811865476
-    * 1.0:    mu = 16.2 sd = 0.4472135954999579
-    * 10.0:   mu = 16.0 sd = 0.0
-    * 100.0:  mu = 16.0 sd = 0.0
+    * CV with different batch values
+    * 512.0: mu = NaN sd = 0.0
+    * 256.0: mu = 6.0 sd = NaN
+    * 128.0: mu = 13.0 sd = NaN
+    * 64.0: mu = 17.0 sd = NaN
+    * 16.0: mu = 16.0 sd = NaN
+    * 32.0: mu = 16.0 sd = NaN
+    * 4.0: mu = 17.0 sd = NaN
+    * 8.0: mu = 17.0 sd = NaN
     */
   def model(nIn: Int, activation: Activation, rngSeed: Long, l2: Double): MultiLayerNetwork = {
     val hiddenLayerSize = nIn / 2
