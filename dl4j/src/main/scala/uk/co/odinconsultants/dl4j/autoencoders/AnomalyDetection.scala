@@ -40,19 +40,20 @@ object AnomalyDetection {
     type Axis       = Double
     val results     = collection.mutable.Map[Axis, Seq[Int]]().withDefault(_ => Seq.empty)
     val activation  = Activation.SWISH
-    for (x <- -2 to 5) {
-      val l2 = math.pow(10, -x)
-      println(s"l2: $l2")
+    val l2          = 1
+    for (x <- 0 to 5) {
+      val batch = math.pow(2, x)
+      println(s"batch: $batch")
       for (i <- 1 to nSamples) {
         CpuBackendNd4jPurger.purge()
         val net                   = model(data.timeSeriesSize, activation, i.toLong, l2)
-        val (trainIter, testIter) = trainTestData(data)
+        val (trainIter, testIter) = trainTestData(data, batch.toInt)
 
         net.pretrain(trainIter, nEpochs)
 
         val vae       = net.getLayer(0).asInstanceOf[VAE]
         val outliers  = testNetwork(vae, trainIter, testIter)
-        results      += l2 -> (results(l2) :+ outliers.length)
+        results      += batch -> (results(l2) :+ outliers.length)
         println(s"[${new java.util.Date()}]: Sample #$i: Number of outliers: ${outliers.length}")
         net.clear()
       }
@@ -89,16 +90,16 @@ object AnomalyDetection {
 
   type Data = ListDataSetIterator[DataSet]
 
-  def trainTestData(data: ClusteredEventsData): (Data, Data) = {
+  def trainTestData(data: ClusteredEventsData, batchSize: Int): (Data, Data) = {
     import data._
     //    val (train, test) = trainTest(Seq(xs), 0.9)
     val nClasses      = 2
 
     val jTrain        = to2DDataset(spread, nClasses, timeSeriesSize)
-    val trainIter     = new ListDataSetIterator(jTrain.batchBy(1), 10)
+    val trainIter     = new ListDataSetIterator(jTrain.batchBy(1), batchSize)
 
     val testDataSets  = to2DDataset(bunched, nClasses, timeSeriesSize)
-    val testIter      = new ListDataSetIterator(testDataSets.batchBy(1), 10)
+    val testIter      = new ListDataSetIterator(testDataSets.batchBy(1), batchSize)
 
     val normalizer = new NormalizerStandardize
     normalizer.fit(trainIter)
