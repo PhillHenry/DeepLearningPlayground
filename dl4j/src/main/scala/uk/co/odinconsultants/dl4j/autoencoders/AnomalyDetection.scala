@@ -27,6 +27,13 @@ object AnomalyDetection {
 
   def process(): Unit = {
 
+    def statsFor(a: Axis, xs: Seq[Int]): RunStat = {
+      val ns = xs.map(_.toDouble).filterNot(_ == 0d) // the DL4J guys warned me against purging (they say a fix is coming soon). In the meantime I sometimes see 0s. Ignore.
+      val mu = mean(ns)
+      val sd = stdDev(ns)
+      (a, mu, sd)
+    }
+
     val data = new ClusteredEventsData {
       override def bunched2SpreadRatio: Double = 0.0025
 
@@ -36,13 +43,13 @@ object AnomalyDetection {
     }
 
     val nEpochs     = 100
-    val nSamples    = 5
-    type Axis       = Double
+    val nSamples    = 10
+    type Axis       = Int
     val results     = collection.mutable.Map[Axis, Seq[Int]]().withDefault(_ => Seq.empty)
-    val activation  = Activation.SWISH
+    val activation  = Activation.SIGMOID
     val l2          = 1
-    for (x <- 6 to 9) {
-      val batch = math.pow(2, x)
+//    for (x <- 6 to 9) {
+      val batch = 64
       println(s"batch: $batch")
       for (i <- 1 to nSamples) {
         CpuBackendNd4jPurger.purge()
@@ -53,24 +60,17 @@ object AnomalyDetection {
 
         val vae       = net.getLayer(0).asInstanceOf[VAE]
         val outliers  = testNetwork(vae, trainIter, testIter)
-        results      += batch -> (results(l2) :+ outliers.length)
+        results      += batch -> (results(batch) :+ outliers.length)
         println(s"[${new java.util.Date()}]: Sample #$i: Number of outliers: ${outliers.length}")
         net.clear()
       }
-      val activationStats = statsFor(l2, results(l2))
+      val activationStats = statsFor(batch, results(batch))
       printResult(activationStats)
-    }
+//    }
 
     println("===============================")
 
     type RunStat  = (Axis, Double, Double)
-
-    def statsFor(a: Axis, xs: Seq[Int]): RunStat = {
-      val ns = xs.map(_.toDouble).filterNot(_ == 0d) // the DL4J guys warned me against purging (they say a fix is coming soon). In the meantime I sometimes see 0s. Ignore.
-      val mu = mean(ns)
-      val sd = stdDev(ns)
-      (a, mu, sd)
-    }
 
     def printResult(result: RunStat): Unit = {
       val (a, mu, sd) = result
@@ -169,15 +169,8 @@ object AnomalyDetection {
 
   /**
     * Taken from Alex Black's VariationalAutoEncoderExample in DeepLearning4J examples.
-    * CV with different batch values
-    * 512.0: mu = NaN sd = 0.0
-    * 256.0: mu = 6.0 sd = NaN
-    * 128.0: mu = 13.0 sd = NaN
-    * 64.0: mu = 17.0 sd = NaN
-    * 16.0: mu = 16.0 sd = NaN
-    * 32.0: mu = 16.0 sd = NaN
-    * 4.0: mu = 17.0 sd = NaN
-    * 8.0: mu = 17.0 sd = NaN
+    * SWISH,    l2=1, batchsize=64: mu = 17.2 sd = 1.1352924243950933
+    * SIGMOID,  l2=1, batchsize=64: mu = 14.1 sd = 0.3162277660168379
     */
   def model(nIn: Int, activation: Activation, rngSeed: Long, l2: Double): MultiLayerNetwork = {
     val hiddenLayerSize = nIn / 2
