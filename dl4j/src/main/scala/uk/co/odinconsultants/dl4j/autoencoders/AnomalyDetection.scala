@@ -170,13 +170,18 @@ object AnomalyDetection {
 
   /**
     * Taken from Alex Black's VariationalAutoEncoderExample in DeepLearning4J examples.
+    * SWISH,          layers = [nIn],         l2=1, batchsize=64, pzActivation  = SOFTMAX,  updater = Adam(1e-4):     mu = 22.0 sd = 0.0,               mu = 17.8 sd = 0.4216370213557839
     * SWISH,          layers = [nIn],         l2=1, batchsize=64, pzActivation  = SOFTMAX,  updater = Adam(1e-5):     mu = 17.2 sd = 1.1352924243950933
+    * SWISH,          layers = [nIn],         l2=1, batchsize=64, pzActivation  = SOFTMAX,  updater = Adam(5e-4):     mu = 17.0 sd = 0.0
+    * SWISH,          layers = [nIn],         l2=1, batchsize=64, pzActivation  = SOFTMAX,  updater = Adam(5e-3):     mu = 14.0 sd = 0.0
+    * SWISH,          layers = [nIn],         l2=1, batchsize=64, pzActivation  = SOFTMAX,  updater = Adam(1e-3):     mu = 17.0 sd = 0.0
     * SWISH,          layers = [nIn],         l2=1, batchsize=64: pzActivation  = SOFTMAX,  updater = RmsProp(1e-3):  mu = 16.0 sd = 0.0
     * SWISH,          layers = [nIn],         l2=1, batchsize=64: pzActivation  = SOFTMAX,  updater = AdaDelta:       mu = 16.0 sd = 0.0
     * SWISH,          layers = [nIn, nIn/2],  l2=1, batchsize=64: pzActivation  = SOFTMAX,  updater = Adam(1e-5):     mu = 15.3 sd = 1.4944341180973262
     * RECTIFIEDTANH,  layers = [nIn],         l2=1, batchsize=64, pzActivation  = SOFTMAX,  updater = Adam(1e-5):     mu = 15.0 sd = 1.0540925533894598
     * SIGMOID,        layers = [nIn],         l2=1, batchsize=64, pzActivation  = SOFTMAX,  updater = Adam(1e-5):     mu = 14.1 sd = 0.3162277660168379
     * SWISH,          layers = [nIn],         l2=1, batchsize=64: pzActivation  = Identity, updater = Adam(1e-5):     mu = 13.6 sd = 1.837873166945363
+    * SWISH,          layers = [nIn],         l2=1, batchsize=64, pzActivation  = SOFTMAX,  updater = Adam(1e-7):     mu = 2.0 sd = NaN
     */
   def model(nIn: Int, activation: Activation, rngSeed: Long, l2: Double): MultiLayerNetwork = {
     val hiddenLayerSize = nIn / 2
@@ -186,7 +191,7 @@ object AnomalyDetection {
 
     val conf = new NeuralNetConfiguration.Builder()
       .seed(rngSeed)
-      .updater(new config.Adam(1e-5))
+      .updater(new config.Adam(5e-4))
       .weightInit(WeightInit.XAVIER)
       .l2(l2)
       .list()
