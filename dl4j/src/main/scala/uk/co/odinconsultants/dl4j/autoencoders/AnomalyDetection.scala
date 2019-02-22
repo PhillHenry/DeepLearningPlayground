@@ -14,6 +14,7 @@ import org.nd4j.linalg.dataset.DataSet
 import org.nd4j.linalg.dataset.api.preprocessor.NormalizerStandardize
 import org.nd4j.linalg.factory.{CpuBackendNd4jPurger, Nd4j}
 import org.nd4j.linalg.learning.config
+import org.nd4j.linalg.learning.config.{AdaDelta, RmsProp}
 import uk.co.odinconsultants.data.ClusteredEventsData
 import uk.co.odinconsultants.dl4j.MultiDimension._
 
@@ -46,7 +47,7 @@ object AnomalyDetection {
     val nSamples    = 10
     type Axis       = Int
     val results     = collection.mutable.Map[Axis, Seq[Int]]().withDefault(_ => Seq.empty)
-    val activation  = Activation.SIGMOID
+    val activation  = Activation.SWISH
     val l2          = 1
 //    for (x <- 6 to 9) {
       val batch = 64
@@ -169,8 +170,13 @@ object AnomalyDetection {
 
   /**
     * Taken from Alex Black's VariationalAutoEncoderExample in DeepLearning4J examples.
-    * SWISH,    l2=1, batchsize=64: mu = 17.2 sd = 1.1352924243950933
-    * SIGMOID,  l2=1, batchsize=64: mu = 14.1 sd = 0.3162277660168379
+    * SWISH,          layers = [nIn],         l2=1, batchsize=64, pzActivation  = SOFTMAX,  updater = Adam(1e-5):     mu = 17.2 sd = 1.1352924243950933
+    * SWISH,          layers = [nIn],         l2=1, batchsize=64: pzActivation  = SOFTMAX,  updater = RmsProp(1e-3):  mu = 16.0 sd = 0.0
+    * SWISH,          layers = [nIn],         l2=1, batchsize=64: pzActivation  = SOFTMAX,  updater = AdaDelta:       mu = 16.0 sd = 0.0
+    * SWISH,          layers = [nIn, nIn/2],  l2=1, batchsize=64: pzActivation  = SOFTMAX,  updater = Adam(1e-5):     mu = 15.3 sd = 1.4944341180973262
+    * RECTIFIEDTANH,  layers = [nIn],         l2=1, batchsize=64, pzActivation  = SOFTMAX,  updater = Adam(1e-5):     mu = 15.0 sd = 1.0540925533894598
+    * SIGMOID,        layers = [nIn],         l2=1, batchsize=64, pzActivation  = SOFTMAX,  updater = Adam(1e-5):     mu = 14.1 sd = 0.3162277660168379
+    * SWISH,          layers = [nIn],         l2=1, batchsize=64: pzActivation  = Identity, updater = Adam(1e-5):     mu = 13.6 sd = 1.837873166945363
     */
   def model(nIn: Int, activation: Activation, rngSeed: Long, l2: Double): MultiLayerNetwork = {
     val hiddenLayerSize = nIn / 2
