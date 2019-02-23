@@ -48,21 +48,20 @@ object AnomalyDetection {
     println(s"batch: $batch")
     for (i <- 1 to nSamples) {
       CpuBackendNd4jPurger.purge()
-        val data = new ClusteredEventsData(bunched2SpreadRatio, N, timeSeriesSize, i)
-        val net                   = model(timeSeriesSize, activation, i.toLong, l2)
-        val (trainIter, testIter) = trainTestData(data, batch.toInt)
+      val data                  = new ClusteredEventsData(bunched2SpreadRatio, N, timeSeriesSize, i)
+      val net                   = model(timeSeriesSize, activation, i.toLong, l2)
+      val (trainIter, testIter) = trainTestData(data, batch.toInt)
 
-        net.pretrain(trainIter, nEpochs)
+      net.pretrain(trainIter, nEpochs)
 
-        val vae       = net.getLayer(0).asInstanceOf[VAE]
-        val outliers  = testNetwork(vae, trainIter, testIter)
-        results      += batch -> (results(batch) :+ outliers.length)
-        println(s"[${new java.util.Date()}]: Sample #$i: Number of outliers: ${outliers.length}")
-        net.clear()
-      }
-      val activationStats = statsFor(batch, results(batch))
-      printResult(activationStats)
-//    }
+      val vae                   = net.getLayer(0).asInstanceOf[VAE]
+      val outliers              = testNetwork(vae, trainIter, testIter)
+      results                  += batch -> (results(batch) :+ outliers.length)
+      println(s"[${new java.util.Date()}]: Sample #$i: Number of outliers: ${outliers.length}")
+      net.clear()
+    }
+    val activationStats = statsFor(batch, results(batch))
+    printResult(activationStats)
 
     println("===============================")
 
