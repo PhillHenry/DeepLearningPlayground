@@ -29,7 +29,7 @@ class ClusteredEventsData(bunched2SpreadRatio: Double, N: Int, timeSeriesSize: I
     (1 to timeSeriesSize).map(_ => randomDateBetween(from, to, random).toEpochSecond(TIMEZONE))
   }.map(_ -> SPREAD)
 
-  val xs: Seq[ClassifiedSample] = Random.shuffle(bunched ++ spread)
+  val xs: Seq[ClassifiedSample] = random.shuffle(bunched ++ spread)
 
   override val classes: Seq[Seq[ClassifiedSample]] = Seq(bunched, spread)
 }

@@ -10,8 +10,6 @@ import uk.co.odinconsultants.maths.Stats._
 @RunWith(classOf[JUnitRunner])
 class ClusteredEventsDataSpec extends WordSpec with Matchers {
 
-  import ClusteredEventsData._
-
   class ClusterFixture {
 
     val bunched2SpreadRatio:  Double              = 9
@@ -21,11 +19,14 @@ class ClusteredEventsDataSpec extends WordSpec with Matchers {
 
   }
 
-  def epochSecondOf(xs: Seq[ClassifiedSample]): Seq[Long]
-    = xs.flatMap(_._1)
+  "Data generated with the same seed" should {
+    "be the same" in {
+      val data1 = new ClusterFixture
+      val data2 = new ClusterFixture
 
-  def toLocalDateTime(x: Long): LocalDateTime
-    = LocalDateTime.ofEpochSecond(x, 0, DateTimeUtils.TIMEZONE)
+      data1.data.classes shouldBe data2.data.classes
+    }
+  }
 
   "All data" should {
     "be red or blue" in new ClusterFixture {
