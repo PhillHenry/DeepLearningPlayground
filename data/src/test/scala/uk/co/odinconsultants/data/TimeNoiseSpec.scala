@@ -18,7 +18,7 @@ class TimeNoiseSpec extends WordSpec with Matchers {
     val n   = 100
     "be within range and unique" in {
       val rnd = (1 to n).map { _ =>
-        val time = randomDateBetween(from, to)
+        val time = randomDateBetween(from, to, random)
         time.isBefore(to) || time.isEqual(to)
         time.isAfter(from) || time.isEqual(from)
         time
@@ -28,7 +28,7 @@ class TimeNoiseSpec extends WordSpec with Matchers {
 
     "be distributed fairly evenly" in {
       val rnd = (1 to n).map { _ =>
-        randomDateBetween(from, to)
+        randomDateBetween(from, to, random)
       }.sorted
       val expectedNumGaps     = n - 1
       val gaps                = gapsInSeconds(rnd)

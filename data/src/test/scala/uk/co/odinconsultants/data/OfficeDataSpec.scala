@@ -13,7 +13,7 @@ class OfficeDataSpec extends WordSpec with Matchers {
 
   "Night and day" should {
     "be significantly different" in {
-      val data = new OfficeData
+      val data = new OfficeData(1)
       import data._
       val ds = xs.filter(_._2 == DAY).map(_._1).flatMap(hoursOf)
       val ns = xs.filter(_._2 == NIGHT).map(_._1).flatMap(hoursOf).map(x => if (x > 12) x - 24 else x)
@@ -23,7 +23,7 @@ class OfficeDataSpec extends WordSpec with Matchers {
     }
   }
 
-  private def checkStatsOf(stdDevMinutes: Double, xs: Seq[Int], expectedMeanHour: Double) = {
+  private def checkStatsOf(stdDevMinutes: Double, xs: Seq[Int], expectedMeanHour: Double): Unit = {
     val sd = stdDev(xs)
     val mu = meanOf(xs)
     println(s"mean = $mu, std dev = $sd")

@@ -12,27 +12,29 @@ class ClusteredEventsDataSpec extends WordSpec with Matchers {
 
   import ClusteredEventsData._
 
-  class ClusterFixture extends ClusteredEventsData{
-    override def bunched2SpreadRatio: Double = 9
+  class ClusterFixture {
 
-    override def N: Int = 100
-
-    override def timeSeriesSize: Int = 50
-
-    def epochSecondOf(xs: Seq[ClassifiedSample]): Seq[Long]
-      = xs.flatMap(_._1)
-
-    def toLocalDateTime(x: Long): LocalDateTime
-      = LocalDateTime.ofEpochSecond(x, 0, DateTimeUtils.TIMEZONE)
+    val bunched2SpreadRatio:  Double              = 9
+    val N:                    Int                 = 100
+    val timeSeriesSize:       Int                 = 50
+    val data:                 ClusteredEventsData = new ClusteredEventsData(bunched2SpreadRatio, N, timeSeriesSize, 1)
 
   }
 
+  def epochSecondOf(xs: Seq[ClassifiedSample]): Seq[Long]
+    = xs.flatMap(_._1)
+
+  def toLocalDateTime(x: Long): LocalDateTime
+    = LocalDateTime.ofEpochSecond(x, 0, DateTimeUtils.TIMEZONE)
+
   "All data" should {
     "be red or blue" in new ClusterFixture {
+      import data._
       (bunched ++ spread) should have size N
       xs should have size N
     }
     "have the same series length" in new ClusterFixture {
+      import data._
       xs.foreach { x =>
         x._1 should have length timeSeriesSize
       }
@@ -45,9 +47,11 @@ class ClusteredEventsDataSpec extends WordSpec with Matchers {
     def meanOfRanges(xs: Seq[Seq[Long]]): Double = meanOf(xs.map(x => x.max - x.min))
 
     "have significantly different ranges" in new ClusterFixture {
+      import data._
       meanOfRanges(spread.map(_._1)) should be > ( meanOfRanges(bunched.map(_._1)) * 100)
     }
     "have significantly different standard deviations" in new ClusterFixture {
+      import data._
       meanOfStdDevOf(spread.map(_._1)) should be > ( meanOfStdDevOf(bunched.map(_._1)) * 100)
     }
   }

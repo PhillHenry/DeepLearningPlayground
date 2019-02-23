@@ -7,13 +7,9 @@ import uk.co.odinconsultants.data.TimeNoise.{noisyTime, randomDateBetween}
 import scala.util.Random
 import ClusteredEventsData._
 
-trait ClusteredEventsData extends ClassificationData[ClassifiedSample] {
+class ClusteredEventsData(bunched2SpreadRatio: Double, N: Int, timeSeriesSize: Int, seed: Int) extends ClassificationData[ClassifiedSample] {
 
-  def bunched2SpreadRatio: Double
-
-  def N: Int
-
-  def timeSeriesSize: Int
+  val random = new Random(seed)
 
   val nBlue: Int = (N / (1 + bunched2SpreadRatio)).toInt
 
@@ -22,20 +18,20 @@ trait ClusteredEventsData extends ClassificationData[ClassifiedSample] {
   val BUNCHED     = 1
   val SPREAD      = 0
 
-  val noisyFn: GenerateFn[Long] = noisyTime(0)
+  val noisyFn: GenerateFn[Long] = noisyTime(0, random)
 
   val bunched: Seq[ClassifiedSample] = (1 to nRed).map { _ =>
-    val date    = randomDateBetween(from, to)
+    val date    = randomDateBetween(from, to, random)
     (1 to timeSeriesSize).flatMap(_ => noisyFn(date))
   }.map(_ -> BUNCHED)
 
   val spread: Seq[ClassifiedSample] = (1 to nBlue).map { _ =>
-    (1 to timeSeriesSize).map(_ => randomDateBetween(from, to).toEpochSecond(TIMEZONE))
+    (1 to timeSeriesSize).map(_ => randomDateBetween(from, to, random).toEpochSecond(TIMEZONE))
   }.map(_ -> SPREAD)
 
   val xs: Seq[ClassifiedSample] = Random.shuffle(bunched ++ spread)
 
-  override val classes = Seq(bunched, spread)
+  override val classes: Seq[Seq[ClassifiedSample]] = Seq(bunched, spread)
 }
 
 object ClusteredEventsData {

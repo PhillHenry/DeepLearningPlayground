@@ -6,13 +6,16 @@ import org.scalatest.{Matchers, WordSpec}
 import uk.co.odinconsultants.data.TimeNoise.noisyTime
 import uk.co.odinconsultants.data.DateTimeUtils._
 
+import scala.util.Random
+
 @RunWith(classOf[JUnitRunner])
 class TimeSeriesGeneratorSpec extends WordSpec with Matchers {
 
   import TimeSeriesGenerator._
 
   "one point per day" should {
-    val points = generate(DDMMYYYY(1, 1, 2019), DDMMYYYY(1, 1, 2020), noisyTime(0))
+    val random = new Random(1)
+    val points = generate(DDMMYYYY(1, 1, 2019), DDMMYYYY(1, 1, 2020), noisyTime(0, random))
     "generate data" in {
       points should not be None
     }
