@@ -7,7 +7,10 @@ import uk.co.odinconsultants.data.TimeNoise.{noisyTime, randomDateBetween}
 import scala.util.Random
 import ClusteredEventsData._
 
-class ClusteredEventsData(bunched2SpreadRatio: Double, N: Int, timeSeriesSize: Int, seed: Int) extends ClassificationData[ClassifiedSample] {
+class ClusteredEventsData(bunched2SpreadRatio:  Double,
+                          val N:                Int,
+                          val timeSeriesSize:   Int,
+                          seed:                 Int) extends ClassificationData[ClassifiedSample] {
 
   val random = new Random(seed)
 

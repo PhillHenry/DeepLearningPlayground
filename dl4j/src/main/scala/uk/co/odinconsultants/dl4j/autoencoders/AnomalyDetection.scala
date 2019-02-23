@@ -35,26 +35,21 @@ object AnomalyDetection {
       (a, mu, sd)
     }
 
-    val data = new ClusteredEventsData {
-      override def bunched2SpreadRatio: Double = 0.0025
-
-      override def N: Int = 10000
-
-      override def timeSeriesSize: Int = 50
-    }
-
-    val nEpochs     = 100
-    val nSamples    = 10
-    type Axis       = Int
-    val results     = collection.mutable.Map[Axis, Seq[Int]]().withDefault(_ => Seq.empty)
-    val activation  = Activation.SWISH
-    val l2          = 1
-//    for (x <- 6 to 9) {
-      val batch = 64
-      println(s"batch: $batch")
-      for (i <- 1 to nSamples) {
-        CpuBackendNd4jPurger.purge()
-        val net                   = model(data.timeSeriesSize, activation, i.toLong, l2)
+    val bunched2SpreadRatio = 0.0025
+    val N                   = 10000
+    val timeSeriesSize      = 50
+    val nEpochs             = 100
+    val nSamples            = 10
+    type Axis               = Int
+    val results             = collection.mutable.Map[Axis, Seq[Int]]().withDefault(_ => Seq.empty)
+    val activation          = Activation.SWISH
+    val l2                  = 1
+    val batch               = 64
+    println(s"batch: $batch")
+    for (i <- 1 to nSamples) {
+      CpuBackendNd4jPurger.purge()
+        val data = new ClusteredEventsData(bunched2SpreadRatio, N, timeSeriesSize, i)
+        val net                   = model(timeSeriesSize, activation, i.toLong, l2)
         val (trainIter, testIter) = trainTestData(data, batch.toInt)
 
         net.pretrain(trainIter, nEpochs)
@@ -203,7 +198,7 @@ object AnomalyDetection {
         .encoderLayerSizes(hiddenLayerSize) // RECTIFIEDTANH, hiddenLayerSize2 76%
         .decoderLayerSizes(hiddenLayerSize) // RECTIFIEDTANH, hiddenLayerSize2, 2, 68%
         .pzxActivationFunction(Activation.SOFTMAX)  //p(z|data) activation function
-        .reconstructionDistribution(new BernoulliReconstructionDistribution(Activation.SIGMOID.getActivationFunction()))     //Bernoulli distribution for p(data|z) (binary or 0 to 1 data only)
+        .reconstructionDistribution(new BernoulliReconstructionDistribution(Activation.SIGMOID.getActivationFunction))     //Bernoulli distribution for p(data|z) (binary or 0 to 1 data only)
         .nIn(nIn)
         .nOut(nIn)
         .build())

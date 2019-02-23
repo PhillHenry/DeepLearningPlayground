@@ -24,13 +24,10 @@ import scala.collection.JavaConverters._
 object TimeSeries {
 
   def process(): MultiLayerNetwork = {
-    val data          = new ClusteredEventsData {
-      override def bunched2SpreadRatio: Double = 0.01
-
-      override def N: Int = 6000
-
-      override def timeSeriesSize: Int = 50
-    }
+    val bunched2SpreadRatio = 0.01
+    val N                   = 6000
+    val timeSeriesSize      = 50
+    val data                = new ClusteredEventsData(bunched2SpreadRatio, N, timeSeriesSize, 1)
     import data._
     /*
 No oversampling:
@@ -76,9 +73,9 @@ Recall: 1.0
     val m             = model(nIn, nClasses)
     val nEpochs       = 5
 
-    val jTrain        = to3DDataset(train, nClasses, data.timeSeriesSize, nIn)
+    val jTrain        = to3DDataset(train, nClasses, timeSeriesSize, nIn)
     val trainIter     = new ListDataSetIterator(jTrain.batchBy(1), 10)
-    val testDataSets  = test.map(x => to3DDataset(Seq(x), nClasses, data.timeSeriesSize, nIn)).toList.asJava
+    val testDataSets  = test.map(x => to3DDataset(Seq(x), nClasses, timeSeriesSize, nIn)).toList.asJava
     val testIter      = new ListDataSetIterator(testDataSets)
 
     val normalizer = new NormalizerStandardize
