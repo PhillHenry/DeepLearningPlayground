@@ -9,7 +9,7 @@ import ClusteredEventsData._
 
 class ClusteredEventsData(bunched2SpreadRatio:  Double,
                           val N:                Int,
-                          val timeSeriesSize:   Int,
+                          val seriesSize:       Int,
                           seed:                 Int) extends ClassificationData[ClassifiedSample] {
 
   val random = new Random(seed)
@@ -25,11 +25,11 @@ class ClusteredEventsData(bunched2SpreadRatio:  Double,
 
   val bunched: Seq[ClassifiedSample] = (1 to nRed).map { _ =>
     val date    = randomDateBetween(from, to, random)
-    (1 to timeSeriesSize).flatMap(_ => noisyFn(date))
+    (1 to seriesSize).flatMap(_ => noisyFn(date))
   }.map(_ -> BUNCHED)
 
   val spread: Seq[ClassifiedSample] = (1 to nBlue).map { _ =>
-    (1 to timeSeriesSize).map(_ => randomDateBetween(from, to, random).toEpochSecond(TIMEZONE))
+    (1 to seriesSize).map(_ => randomDateBetween(from, to, random).toEpochSecond(TIMEZONE))
   }.map(_ -> SPREAD)
 
   val xs: Seq[ClassifiedSample] = random.shuffle(bunched ++ spread)

@@ -90,10 +90,10 @@ object AnomalyDetection {
     //    val (train, test) = trainTest(Seq(xs), 0.9)
     val nClasses      = 2
 
-    val jTrain        = to2DDataset(spread, nClasses, timeSeriesSize)
+    val jTrain        = to2DDataset(spread, nClasses, seriesSize)
     val trainIter     = new ListDataSetIterator(jTrain.batchBy(1), batchSize)
 
-    val testDataSets  = to2DDataset(bunched, nClasses, timeSeriesSize)
+    val testDataSets  = to2DDataset(bunched, nClasses, seriesSize)
     val testIter      = new ListDataSetIterator(testDataSets.batchBy(1), batchSize)
 
     val normalizer = new NormalizerStandardize
