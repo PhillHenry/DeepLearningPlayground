@@ -164,6 +164,11 @@ object AnomalyDetection {
 
   /**
     * Taken from Alex Black's VariationalAutoEncoderExample in DeepLearning4J examples.
+    * SWISH,          layers = [nIn],         l2=1,     batchsize=64,   pzActivation  = SOFTMAX,  updater = Adam(1e-4):     mu = 18.6 sd = 3.4383458555273667
+    * SWISH,          layers = [nIn],         l2=1,     batchsize=128,  pzActivation  = SOFTMAX,  updater = Adam(1e-4):     mu = 18.6 sd = 3.4383458555273667
+    * SWISH,          layers = [nIn],         l2=1e-1,  batchsize=128,  pzActivation  = SOFTMAX,  updater = Adam(1e-4):     mu = 18.6 sd = 3.4383458555273667
+    * SWISH,          layers = [nIn],         l2=1e-3,  batchsize=128,  pzActivation  = SOFTMAX,  updater = Adam(1e-5):     mu = 18.3 sd = 3.4334951418181574
+    * SWISH,          layers = [nIn],         l2=1e-1,  batchsize=128,  pzActivation  = SOFTMAX,  updater = Adam(1e-5):     mu = 18.2 sd = 3.4253953543107016
     */
   def model(nIn: Int, activation: Activation, rngSeed: Long, l2: Double): MultiLayerNetwork = {
     val hiddenLayerSize = nIn / 2
