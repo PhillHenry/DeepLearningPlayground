@@ -45,9 +45,9 @@ object AnomalyDetection {
     val l2                  = 1
     val batch               = 64
     println(s"batch: $batch")
-    for (activation <- Activation.values()) {
+    for (activation <- Activation.values().drop(6)) {
       for (i <- 1 to nSamples) {
-//        CpuBackendNd4jPurger.purge()
+        CpuBackendNd4jPurger.purge()
         val data = new ClusteredEventsData(bunched2SpreadRatio, N, timeSeriesSize, i)
         val net = model(timeSeriesSize, activation, i.toLong, l2)
         val (trainIter, testIter) = trainTestData(data, batch.toInt)
@@ -165,15 +165,19 @@ object AnomalyDetection {
 
   /**
     * Taken from Alex Black's VariationalAutoEncoderExample in DeepLearning4J examples.
-    * RECTIFIEDTANH,  layers = [nIn],         l2=1,       batchsize=64,   pzActivation  = SOFTMAX,  updater = Adam(1e-3):     mu = 18.6 sd = 3.4383458555273667
-    * SWISH,          layers = [nIn],         l2=1,       batchsize=64,   pzActivation  = SOFTMAX,  updater = Adam(1e-3):     mu = 18.6 sd = 3.4383458555273667
-    * SWISH,          layers = [nIn],         l2=1,       batchsize=64,   pzActivation  = SOFTMAX,  updater = Adam(1e-4):     mu = 18.6 sd = 3.4383458555273667
-    * TANH,           layers = [nIn],         l2=1,       batchsize=64,   pzActivation  = SOFTMAX,  updater = Adam(1e-4):     mu = 18.6 sd = 3.4383458555273667
-    * SWISH,          layers = [nIn],         l2=1,       batchsize=128,  pzActivation  = SOFTMAX,  updater = Adam(1e-4):     mu = 18.6 sd = 3.4383458555273667
-    * SWISH,          layers = [nIn],         l2=1e-1,    batchsize=128,  pzActivation  = SOFTMAX,  updater = Adam(1e-4):     mu = 18.6 sd = 3.4383458555273667
-    * TANH,           layers = [nIn],         l2=1e-5,    batchsize=128,  pzActivation  = SOFTMAX,  updater = Adam(1e-4):     mu = 18.5 sd = 3.4075080500434787
-    * SWISH,          layers = [nIn],         l2=1e-3,    batchsize=128,  pzActivation  = SOFTMAX,  updater = Adam(1e-5):     mu = 18.3 sd = 3.4334951418181574
-    * SWISH,          layers = [nIn],         l2=1e-1,    batchsize=128,  pzActivation  = SOFTMAX,  updater = Adam(1e-5):     mu = 18.2 sd = 3.4253953543107016
+    * SOFTPLUS,       layers = [nIn],         l2=1,       batchsize=64,   pzActivation  = SOFTPLUS,     reconstruction = SOFTPLUS     updater = Adam(1e-3):     mu = 19.1 sd = 3.5418137224371984
+    * HARDSIGMOID,    layers = [nIn],         l2=1,       batchsize=64,   pzActivation  = HARDSIGMOID,  reconstruction = HARDSIGMOID  updater = Adam(1e-3):     mu = 18.9 sd = 3.178049716414141
+    * SOFTMAX,        layers = [nIn],         l2=1,       batchsize=64,   pzActivation  = SOFTMAX,      reconstruction = SOFTMAX      updater = Adam(1e-3):     mu = 18.8 sd = 3.645392830531285
+    * SIGMOID,        layers = [nIn],         l2=1,       batchsize=64,   pzActivation  = SIGMOID,      reconstruction = SIGMOID      updater = Adam(1e-3):     mu = 18.8 sd = 3.2591750830880843
+    * RECTIFIEDTANH,  layers = [nIn],         l2=1,       batchsize=64,   pzActivation  = SOFTMAX,      reconstruction = SOFTMAX,     updater = Adam(1e-3):     mu = 18.6 sd = 3.4383458555273667
+    * SWISH,          layers = [nIn],         l2=1,       batchsize=64,   pzActivation  = SOFTMAX,      reconstruction = SOFTMAX,     updater = Adam(1e-3):     mu = 18.6 sd = 3.4383458555273667
+    * SWISH,          layers = [nIn],         l2=1,       batchsize=64,   pzActivation  = SOFTMAX,      reconstruction = SOFTMAX,     updater = Adam(1e-4):     mu = 18.6 sd = 3.4383458555273667
+    * TANH,           layers = [nIn],         l2=1,       batchsize=64,   pzActivation  = SOFTMAX,      reconstruction = SOFTMAX,     updater = Adam(1e-4):     mu = 18.6 sd = 3.4383458555273667
+    * SWISH,          layers = [nIn],         l2=1,       batchsize=128,  pzActivation  = SOFTMAX,      reconstruction = SOFTMAX,     updater = Adam(1e-4):     mu = 18.6 sd = 3.4383458555273667
+    * SWISH,          layers = [nIn],         l2=1e-1,    batchsize=128,  pzActivation  = SOFTMAX,      reconstruction = SOFTMAX,     updater = Adam(1e-4):     mu = 18.6 sd = 3.4383458555273667
+    * TANH,           layers = [nIn],         l2=1e-5,    batchsize=128,  pzActivation  = SOFTMAX,      reconstruction = SOFTMAX,     updater = Adam(1e-4):     mu = 18.5 sd = 3.4075080500434787
+    * SWISH,          layers = [nIn],         l2=1e-3,    batchsize=128,  pzActivation  = SOFTMAX,      reconstruction = SOFTMAX,     updater = Adam(1e-5):     mu = 18.3 sd = 3.4334951418181574
+    * SWISH,          layers = [nIn],         l2=1e-1,    batchsize=128,  pzActivation  = SOFTMAX,      reconstruction = SOFTMAX,     updater = Adam(1e-5):     mu = 18.2 sd = 3.4253953543107016
     */
   def model(nIn: Int, activation: Activation, rngSeed: Long, l2: Double): MultiLayerNetwork = {
     println(s"activation = $activation, l2 = $l2")
@@ -201,9 +205,7 @@ object AnomalyDetection {
 
     val net = new MultiLayerNetwork(conf)
     net.init()
-//    net.addListeners(new ScoreIterationListener(1000))
-
-    uiServerListensTo(net)
+    net.addListeners(new ScoreIterationListener(100))
 
     net
   }
