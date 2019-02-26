@@ -40,30 +40,31 @@ object AnomalyDetection {
     val timeSeriesSize      = 50
     val nEpochs             = 100
     val nSamples            = 10
-    type Axis               = Int
+    type Axis               = Activation
     val results             = collection.mutable.Map[Axis, Seq[Int]]().withDefault(_ => Seq.empty)
-    val activation          = Activation.SWISH
     val l2                  = 1
     val batch               = 64
     println(s"batch: $batch")
-    for (i <- 1 to nSamples) {
-      CpuBackendNd4jPurger.purge()
-      val data                  = new ClusteredEventsData(bunched2SpreadRatio, N, timeSeriesSize, i)
-      val net                   = model(timeSeriesSize, activation, i.toLong, l2)
-      val (trainIter, testIter) = trainTestData(data, batch.toInt)
+    for (activation <- Activation.values()) {
+      for (i <- 1 to nSamples) {
+//        CpuBackendNd4jPurger.purge()
+        val data = new ClusteredEventsData(bunched2SpreadRatio, N, timeSeriesSize, i)
+        val net = model(timeSeriesSize, activation, i.toLong, l2)
+        val (trainIter, testIter) = trainTestData(data, batch.toInt)
 
-      net.pretrain(trainIter, nEpochs)
+        net.pretrain(trainIter, nEpochs)
 
-      val vae                   = net.getLayer(0).asInstanceOf[VAE]
-      val outliers              = testNetwork(vae, trainIter, testIter)
-      results                  += batch -> (results(batch) :+ outliers.length)
-      println(s"[${new java.util.Date()}]: Sample #$i: Number of outliers: ${outliers.length}")
-      net.clear()
+        val vae = net.getLayer(0).asInstanceOf[VAE]
+        val outliers = testNetwork(vae, trainIter, testIter)
+        results += activation -> (results(activation) :+ outliers.length)
+        println(s"[${new java.util.Date()}]: Sample #$i: Number of outliers: ${outliers.length}")
+//        net.clear()
+      }
+      val activationStats = statsFor(activation, results(activation))
+      printResult(activationStats)
+
+      println("===============================")
     }
-    val activationStats = statsFor(batch, results(batch))
-    printResult(activationStats)
-
-    println("===============================")
 
     type RunStat  = (Axis, Double, Double)
 
@@ -164,13 +165,18 @@ object AnomalyDetection {
 
   /**
     * Taken from Alex Black's VariationalAutoEncoderExample in DeepLearning4J examples.
-    * SWISH,          layers = [nIn],         l2=1,     batchsize=64,   pzActivation  = SOFTMAX,  updater = Adam(1e-4):     mu = 18.6 sd = 3.4383458555273667
-    * SWISH,          layers = [nIn],         l2=1,     batchsize=128,  pzActivation  = SOFTMAX,  updater = Adam(1e-4):     mu = 18.6 sd = 3.4383458555273667
-    * SWISH,          layers = [nIn],         l2=1e-1,  batchsize=128,  pzActivation  = SOFTMAX,  updater = Adam(1e-4):     mu = 18.6 sd = 3.4383458555273667
-    * SWISH,          layers = [nIn],         l2=1e-3,  batchsize=128,  pzActivation  = SOFTMAX,  updater = Adam(1e-5):     mu = 18.3 sd = 3.4334951418181574
-    * SWISH,          layers = [nIn],         l2=1e-1,  batchsize=128,  pzActivation  = SOFTMAX,  updater = Adam(1e-5):     mu = 18.2 sd = 3.4253953543107016
+    * RECTIFIEDTANH,  layers = [nIn],         l2=1,       batchsize=64,   pzActivation  = SOFTMAX,  updater = Adam(1e-3):     mu = 18.6 sd = 3.4383458555273667
+    * SWISH,          layers = [nIn],         l2=1,       batchsize=64,   pzActivation  = SOFTMAX,  updater = Adam(1e-3):     mu = 18.6 sd = 3.4383458555273667
+    * SWISH,          layers = [nIn],         l2=1,       batchsize=64,   pzActivation  = SOFTMAX,  updater = Adam(1e-4):     mu = 18.6 sd = 3.4383458555273667
+    * TANH,           layers = [nIn],         l2=1,       batchsize=64,   pzActivation  = SOFTMAX,  updater = Adam(1e-4):     mu = 18.6 sd = 3.4383458555273667
+    * SWISH,          layers = [nIn],         l2=1,       batchsize=128,  pzActivation  = SOFTMAX,  updater = Adam(1e-4):     mu = 18.6 sd = 3.4383458555273667
+    * SWISH,          layers = [nIn],         l2=1e-1,    batchsize=128,  pzActivation  = SOFTMAX,  updater = Adam(1e-4):     mu = 18.6 sd = 3.4383458555273667
+    * TANH,           layers = [nIn],         l2=1e-5,    batchsize=128,  pzActivation  = SOFTMAX,  updater = Adam(1e-4):     mu = 18.5 sd = 3.4075080500434787
+    * SWISH,          layers = [nIn],         l2=1e-3,    batchsize=128,  pzActivation  = SOFTMAX,  updater = Adam(1e-5):     mu = 18.3 sd = 3.4334951418181574
+    * SWISH,          layers = [nIn],         l2=1e-1,    batchsize=128,  pzActivation  = SOFTMAX,  updater = Adam(1e-5):     mu = 18.2 sd = 3.4253953543107016
     */
   def model(nIn: Int, activation: Activation, rngSeed: Long, l2: Double): MultiLayerNetwork = {
+    println(s"activation = $activation, l2 = $l2")
     val hiddenLayerSize = nIn / 2
 
     val conf = new NeuralNetConfiguration.Builder()
@@ -184,10 +190,10 @@ object AnomalyDetection {
 //        .activation(Activation.SOFTMAX).nIn(nHidden).nOut(nClasses).lossFunction(new LossNegativeLogLikelihood(Nd4j.create(Array(0.005f, 1f)))).build())
       .layer(0, new VariationalAutoencoder.Builder()
         .activation(activation)
-        .encoderLayerSizes(hiddenLayerSize) // RECTIFIEDTANH, hiddenLayerSize2 76%
-        .decoderLayerSizes(hiddenLayerSize) // RECTIFIEDTANH, hiddenLayerSize2, 2, 68%
-        .pzxActivationFunction(Activation.SOFTMAX)  //p(z|data) activation function
-        .reconstructionDistribution(new GaussianReconstructionDistribution(Activation.TANH.getActivationFunction))     //Bernoulli distribution for p(data|z) (binary or 0 to 1 data only)
+        .encoderLayerSizes(hiddenLayerSize)
+        .decoderLayerSizes(hiddenLayerSize)
+        .pzxActivationFunction(activation)  //p(z|data) activation function
+        .reconstructionDistribution(new GaussianReconstructionDistribution(activation))
         .nIn(nIn)
         .nOut(nIn)
         .build())
@@ -195,7 +201,9 @@ object AnomalyDetection {
 
     val net = new MultiLayerNetwork(conf)
     net.init()
-    net.addListeners(new ScoreIterationListener(1000))
+//    net.addListeners(new ScoreIterationListener(1000))
+
+    uiServerListensTo(net)
 
     net
   }
