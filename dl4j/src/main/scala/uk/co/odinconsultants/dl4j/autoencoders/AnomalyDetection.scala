@@ -16,7 +16,7 @@ import org.nd4j.linalg.factory.{CpuBackendNd4jPurger, Nd4j}
 import org.nd4j.linalg.learning.config
 import org.nd4j.linalg.learning.config.{AdaDelta, RmsProp}
 import uk.co.odinconsultants.data.ClusteredEventsData
-import uk.co.odinconsultants.dl4j.MultiDimension._
+import uk.co.odinconsultants.dl4j4s.data.DataSetShaper
 
 import scala.util.Try
 
@@ -45,7 +45,8 @@ object AnomalyDetection {
     val l2                  = 1
     val batch               = 64
     println(s"batch: $batch")
-    for (activation <- Activation.values().drop(6)) {
+    val activation = Activation.SOFTPLUS
+//    for (activation <- Activation.values().drop(6)) {
       for (i <- 1 to nSamples) {
         CpuBackendNd4jPurger.purge()
         val data = new ClusteredEventsData(bunched2SpreadRatio, N, timeSeriesSize, i)
@@ -64,7 +65,7 @@ object AnomalyDetection {
       printResult(activationStats)
 
       println("===============================")
-    }
+//    }
 
     type RunStat  = (Axis, Double, Double)
 
@@ -91,10 +92,11 @@ object AnomalyDetection {
     //    val (train, test) = trainTest(Seq(xs), 0.9)
     val nClasses      = 2
 
-    val jTrain        = to2DDataset(spread, nClasses, seriesSize)
+    val shaper        = new DataSetShaper[Long]
+    val jTrain        = shaper.to2DDataset(spread, nClasses, seriesSize)
     val trainIter     = new ListDataSetIterator(jTrain.batchBy(1), batchSize)
 
-    val testDataSets  = to2DDataset(bunched, nClasses, seriesSize)
+    val testDataSets  = shaper.to2DDataset(bunched, nClasses, seriesSize)
     val testIter      = new ListDataSetIterator(testDataSets.batchBy(1), batchSize)
 
     val normalizer = new NormalizerStandardize
@@ -226,8 +228,9 @@ object AnomalyDetection {
     uiServer.attach(statsStorage)
 
     //Then add the StatsListener to collect this information from the network, as it trains
-    net.addListeners(new StatsListener(statsStorage))
-
+//    net.addListeners(new StatsListener(statsStorage))
+    net.setListeners(new StatsListener(statsStorage), new ScoreIterationListener(100))
+    net
   }
 
 

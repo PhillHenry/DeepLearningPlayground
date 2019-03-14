@@ -16,7 +16,7 @@ import org.nd4j.linalg.lossfunctions.impl.LossNegativeLogLikelihood
 import uk.co.odinconsultants.data.ClusteredEventsData
 import uk.co.odinconsultants.data.ClusteredEventsData.ClassifiedSample
 import uk.co.odinconsultants.data.SamplingFunctions.{oversample, trainTest}
-import uk.co.odinconsultants.dl4j.MultiDimension._
+import uk.co.odinconsultants.dl4j4s.data.DataSetShaper
 
 import scala.collection.JavaConverters._
 
@@ -72,10 +72,10 @@ Recall: 1.0
     val nIn           = 1
     val m             = model(nIn, nClasses)
     val nEpochs       = 5
-
-    val jTrain        = to3DDataset(train, nClasses, timeSeriesSize, nIn)
+    val shaper        = new DataSetShaper[Long]
+    val jTrain        = shaper.to3DDataset(train, nClasses, timeSeriesSize, nIn)
     val trainIter     = new ListDataSetIterator(jTrain.batchBy(1), 10)
-    val testDataSets  = test.map(x => to3DDataset(Seq(x), nClasses, timeSeriesSize, nIn)).toList.asJava
+    val testDataSets  = test.map(x => shaper.to3DDataset(Seq(x), nClasses, timeSeriesSize, nIn)).toList.asJava
     val testIter      = new ListDataSetIterator(testDataSets)
 
     val normalizer = new NormalizerStandardize
@@ -119,7 +119,7 @@ Recall: 1.0
       .gradientNormalization(GradientNormalization.ClipElementWiseAbsoluteValue) //Not always required, but helps with this data set
       .gradientNormalizationThreshold(0.5)
       .list()
-      .layer(0, new LSTM.Builder().activation(Activation.TANH).nIn(1).nOut(nHidden).build())
+      .layer(0, new LSTM.Builder().activation(Activation.TANH).nIn(inN).nOut(nHidden).build())
       .layer(1, new RnnOutputLayer.Builder(LossFunctions.LossFunction.MCXENT)
         .activation(Activation.SOFTMAX).nIn(nHidden).nOut(nClasses).lossFunction(new LossNegativeLogLikelihood(Nd4j.create(Array(0.005f, 1f)))).build())
       .build()

@@ -1,11 +1,15 @@
-package uk.co.odinconsultants.dl4j
+package uk.co.odinconsultants.dl4j4s.data
 
 import org.nd4j.linalg.dataset.DataSet
 import org.nd4j.linalg.factory.Nd4j
 
-object MultiDimension {
+import scala.reflect.ClassTag
 
-  type Series2Cat = (Seq[Long], Int)
+class DataSetShaper[T : Numeric : ClassTag] {
+
+  val opT: Numeric[T] = implicitly[Numeric[T]]
+
+  type Series2Cat = (Seq[T], Int)
 
   /**
     * Aha! Was the victim of this bug: https://github.com/deeplearning4j/dl4j-examples/issues/779
@@ -18,7 +22,7 @@ object MultiDimension {
     s2cs.zipWithIndex.foreach { case ((xs, c), i) =>
       xs.zipWithIndex.foreach { case (x, j) =>
         val indxFeatures: Array[Int] = Array(i, 0, j)
-        features.putScalar(indxFeatures, x)
+        features.putScalar(indxFeatures, opT.toDouble(x))
         val indxLabels:   Array[Int] = Array(i, c, j)
         labels.putScalar(indxLabels, 1)
       }
@@ -34,7 +38,7 @@ object MultiDimension {
     s2cs.zipWithIndex.foreach { case ((xs, c), i) =>
       xs.zipWithIndex.foreach { case (x, j) =>
         val indxFeatures: Array[Int] = Array(i, j)
-        features.putScalar(indxFeatures, x)
+        features.putScalar(indxFeatures, opT.toDouble(x))
       }
       val indxLabels:   Array[Int] = Array(i, c)
       labels.putScalar(indxLabels, 1)
