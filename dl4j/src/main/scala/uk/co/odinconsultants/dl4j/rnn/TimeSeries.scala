@@ -119,9 +119,8 @@ Recall: 1.0
       .gradientNormalization(GradientNormalization.ClipElementWiseAbsoluteValue) //Not always required, but helps with this data set
       .gradientNormalizationThreshold(0.5)
       .list()
-      .layer(0, new LSTM.Builder().activation(Activation.TANH).nIn(inN).nOut(nHidden).build())
-      .layer(1, new RnnOutputLayer.Builder(LossFunctions.LossFunction.MCXENT)
-        .activation(Activation.SOFTMAX).nIn(nHidden).nOut(nClasses).lossFunction(new LossNegativeLogLikelihood(Nd4j.create(Array(0.005f, 1f)))).build())
+      .layer(0, new LSTM.Builder().activation(Activation.TANH).nIn(1).nOut(nHidden).build())
+      .layer(1, new RnnOutputLayer.Builder().activation(Activation.SOFTMAX).nIn(nHidden).nOut(nClasses).lossFunction(new LossNegativeLogLikelihood(Nd4j.create(Array(0.005f, 1f)))).build())
       .build()
 
     val model = new MultiLayerNetwork(conf)
