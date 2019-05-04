@@ -13,10 +13,35 @@ import org.nd4j.linalg.activations.Activation
 import org.nd4j.linalg.learning.config.Nesterovs
 import org.nd4j.linalg.lossfunctions.LossFunctions
 import org.nd4j.linalg.schedule.{MapSchedule, ScheduleType}
+import uk.co.odinconsultants.data.MatrixData
+import uk.co.odinconsultants.dl4j4s.data.DataSetShaper
+
+import scala.util.Random
 
 object MatrixClassification {
 
   def main(args: Array[String]): Unit = {
+    val h = 100
+    val w = 100
+    val shaper = new DataSetShaper[Double]
+    val nSamples = 100
+    val ptsPerSample = 1000
+    val random = new Random()
+    val cat = 1
+    val m2cs = (1 to nSamples).map { i =>
+      val ranges = Seq((0, h), (0, w))
+      val coords = MatrixData.randomCoords(ptsPerSample, ranges, random)
+      (coords.map(xs => (xs.head, xs.last)), cat)
+    }
+    val ds = shaper.to4DDataset(m2cs, 2, w, h)
+    val m = model(h, w)
+    m.fit(ds)
+  }
+
+  /**
+    * Stolen from MnistClassifier in dl4j-examples
+    */
+  def model(height: Int, width: Int): MultiLayerNetwork = {
     val seed = 1L
     val learningRateSchedule: util.Map[java.lang.Integer, java.lang.Double] = new util.HashMap[java.lang.Integer, java.lang.Double]
     learningRateSchedule.put(0, 0.06)
@@ -27,8 +52,6 @@ object MatrixClassification {
     val updater = new Nesterovs(new MapSchedule(ScheduleType.ITERATION, learningRateSchedule))
     val channels = 1
     val outputNum = 2
-    val height = 100
-    val width = 100
 
     val conf: MultiLayerConfiguration = new NeuralNetConfiguration.Builder().seed(seed).l2(0.0005).updater(updater)
       .weightInit(WeightInit.XAVIER).list
@@ -48,6 +71,7 @@ object MatrixClassification {
     val net: MultiLayerNetwork = new MultiLayerNetwork(conf)
     net.init()
     net.setListeners(new ScoreIterationListener(10))
+    net
   }
 
 }
