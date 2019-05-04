@@ -1,9 +1,12 @@
 package uk.co.odinconsultants.data
 
+import org.junit.runner.RunWith
+import org.scalatest.junit.JUnitRunner
 import org.scalatest.{Matchers, WordSpec}
 
 import scala.util.Random
 
+@RunWith(classOf[JUnitRunner])
 class MatrixDataSpec extends WordSpec with Matchers {
 
   import MatrixData._
@@ -19,6 +22,7 @@ class MatrixDataSpec extends WordSpec with Matchers {
 
     def checkWithinRange(x: Int, r: (Int, Int)): Unit = {
       x should be >= r._1
+      x should be < r._2
     }
 
     "be within range" in {
@@ -28,9 +32,10 @@ class MatrixDataSpec extends WordSpec with Matchers {
 
     "be within ranges" in {
       val coords  = randomCoords(n, ranges, random)
-      coords.foreach(xs =>
+      coords.foreach { xs =>
         xs should have length ranges.length
-      )
+        xs.zip(ranges).foreach { case (x, r) => checkWithinRange(x, r) }
+      }
     }
   }
 

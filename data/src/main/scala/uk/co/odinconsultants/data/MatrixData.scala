@@ -8,7 +8,7 @@ object MatrixData {
 
   def randomWith(r: Range, random: Random): Int = {
     val diff = r._2 - r._1
-    (random.nextDouble() * diff).toInt
+    (random.nextDouble() * diff).toInt + r._1
   }
 
   def randomCoords(n: Int, ranges: Seq[Range], random: Random): Seq[Seq[Int]] = {
