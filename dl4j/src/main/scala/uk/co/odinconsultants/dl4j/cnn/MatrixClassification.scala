@@ -10,6 +10,7 @@ import org.deeplearning4j.nn.conf.layers.{ConvolutionLayer, DenseLayer, OutputLa
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork
 import org.deeplearning4j.nn.weights.WeightInit
 import org.deeplearning4j.optimize.listeners.ScoreIterationListener
+import org.nd4j.evaluation.classification.Evaluation
 import org.nd4j.linalg.activations.Activation
 import org.nd4j.linalg.dataset.DataSet
 import org.nd4j.linalg.dataset.api.preprocessor.NormalizerStandardize
@@ -29,12 +30,18 @@ object MatrixClassification {
     val w                     = 100
     val (testIter, trainIter) = testTrain(w, h)
     val m                     = model(h, w)
-    val nEpochs               = 20
+    val nEpochs               = 5
     (1 to nEpochs).foreach { e =>
       println(s"Epoch # $e")
       m.fit(trainIter)
       trainIter.reset()
     }
+
+    val evaluation: Evaluation = m.evaluate(testIter)
+    println("Accuracy: "+evaluation.accuracy)
+    println("Stats: "+evaluation.stats())
+    println("Precision: "+evaluation.precision())
+    println("Recall: "+evaluation.recall())
   }
 
   def rawTestTrain(w: Int, h: Int): (Seq[OneHotMatrix2Cat], Seq[OneHotMatrix2Cat]) = {
@@ -45,6 +52,7 @@ object MatrixClassification {
     val test          = all.drop(nTrain)
     (test, train)
   }
+
   type Data = ListDataSetIterator[DataSet]
 
   def testTrain(w: Int, h: Int): (Data, Data) = {
@@ -56,12 +64,12 @@ object MatrixClassification {
     val batchSize     = 32
     val trainIter     = new ListDataSetIterator(dsTrain.batchBy(1), batchSize)
     val testIter      = new ListDataSetIterator(dsTest.batchBy(1), batchSize)
-    val normalizer    = new NormalizerStandardize
-    normalizer.fit(trainIter)
-    trainIter.reset()
-    trainIter.setPreProcessor(normalizer)
-    testIter.reset()
-    testIter.setPreProcessor(normalizer)
+//    val normalizer    = new NormalizerStandardize
+//    normalizer.fit(trainIter)
+//    trainIter.reset()
+//    trainIter.setPreProcessor(normalizer)
+//    testIter.reset()
+//    testIter.setPreProcessor(normalizer)
     (testIter, trainIter)
   }
 
@@ -90,11 +98,12 @@ object MatrixClassification {
   def model(height: Int, width: Int): MultiLayerNetwork = {
     val seed = 1L
     val learningRateSchedule: util.Map[java.lang.Integer, java.lang.Double] = new util.HashMap[java.lang.Integer, java.lang.Double]
-    learningRateSchedule.put(0, 0.06)
-    learningRateSchedule.put(200, 0.05)
-    learningRateSchedule.put(600, 0.028)
-    learningRateSchedule.put(800, 0.0060)
-    learningRateSchedule.put(1000, 0.001)
+    val x = 100
+    learningRateSchedule.put(0, 0.06 / x)
+    learningRateSchedule.put(200, 0.05 / x)
+    learningRateSchedule.put(600, 0.028 / x)
+    learningRateSchedule.put(800, 0.0060 / x)
+    learningRateSchedule.put(1000, 0.001 / x)
     val updater = new Nesterovs(new MapSchedule(ScheduleType.ITERATION, learningRateSchedule))
     val channels = 1
     val outputNum = 2
@@ -116,9 +125,9 @@ object MatrixClassification {
 
     val net: MultiLayerNetwork = new MultiLayerNetwork(conf)
     net.init()
-    net.setListeners(new ScoreIterationListener(10))
 
     AnomalyDetection.uiServerListensTo(net)
+    net.setListeners(new ScoreIterationListener(10))
     net
   }
 
