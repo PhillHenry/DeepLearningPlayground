@@ -64,12 +64,6 @@ object MatrixClassification {
     val batchSize     = 32
     val trainIter     = new ListDataSetIterator(dsTrain.batchBy(1), batchSize)
     val testIter      = new ListDataSetIterator(dsTest.batchBy(1), batchSize)
-//    val normalizer    = new NormalizerStandardize
-//    normalizer.fit(trainIter)
-//    trainIter.reset()
-//    trainIter.setPreProcessor(normalizer)
-//    testIter.reset()
-//    testIter.setPreProcessor(normalizer)
     (testIter, trainIter)
   }
 
@@ -84,13 +78,13 @@ object MatrixClassification {
     }
     val m2csPattern: Seq[OneHotMatrix2Cat]   = (1 to nSamples).map { i =>
       val ranges  = Seq((0, h), (0, w))
-      val pattern = (0 until w).zip(0 until h).map { case(x, y) => Seq(x, y) }
+      val s       = 5
+      val pattern = (0 until (w, s)).zip(0 until (h, s)).map { case(x, y) => Seq(x, y) }
       val coords  = MatrixData.randomCoords(ptsPerSample - pattern.size, ranges, random) ++ pattern
       (coords.map(xs => (xs.head, xs.last)), 0)
     }
     Random.shuffle(m2csPattern ++ m2csRand)
   }
-
 
   /**
     * Stolen from MnistClassifier in dl4j-examples
