@@ -1,28 +1,22 @@
 package uk.co.odinconsultants.dl4j.cnn
 
 import java.util
-import java.util.{HashMap, Map}
 
 import org.deeplearning4j.datasets.iterator.impl.ListDataSetIterator
-import org.deeplearning4j.nn.conf.{MultiLayerConfiguration, NeuralNetConfiguration}
 import org.deeplearning4j.nn.conf.inputs.InputType
 import org.deeplearning4j.nn.conf.layers.{ConvolutionLayer, DenseLayer, OutputLayer, SubsamplingLayer}
+import org.deeplearning4j.nn.conf.{MultiLayerConfiguration, NeuralNetConfiguration}
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork
 import org.deeplearning4j.nn.weights.WeightInit
 import org.deeplearning4j.optimize.listeners.ScoreIterationListener
 import org.nd4j.evaluation.classification.Evaluation
 import org.nd4j.linalg.activations.Activation
 import org.nd4j.linalg.dataset.DataSet
-import org.nd4j.linalg.dataset.api.preprocessor.NormalizerStandardize
 import org.nd4j.linalg.learning.config.Nesterovs
 import org.nd4j.linalg.lossfunctions.LossFunctions
 import org.nd4j.linalg.schedule.{MapSchedule, ScheduleType}
-import uk.co.odinconsultants.data.MatrixData
 import uk.co.odinconsultants.dl4j.autoencoders.AnomalyDetection
 import uk.co.odinconsultants.dl4j4s.data.DataSetShaper
-import uk.co.odinconsultants.dl4j4s.data.DataSetShaper.OneHotMatrix2Cat
-
-import scala.util.Random
 
 object MatrixClassification {
   def main(args: Array[String]): Unit = {
@@ -44,19 +38,11 @@ object MatrixClassification {
     println("Recall: "+evaluation.recall())
   }
 
-  def rawTestTrain(w: Int, h: Int): (Seq[OneHotMatrix2Cat], Seq[OneHotMatrix2Cat]) = {
-    val all           = randPattern(h, w)
-
-    val nTrain        = (all.length * 0.9).toInt
-    val train         = all.take(nTrain)
-    val test          = all.drop(nTrain)
-    (test, train)
-  }
-
   type Data = ListDataSetIterator[DataSet]
 
   def testTrain(w: Int, h: Int): (Data, Data) = {
-    val (test, train) = rawTestTrain(w, h)
+    val raw           = new RawData(w, h)
+    import raw._
     val shaper        = new DataSetShaper[Double]
     val nClasses      = 2
     val dsTrain       = shaper.to4DDataset(train, nClasses, w, h)
@@ -65,25 +51,6 @@ object MatrixClassification {
     val trainIter     = new ListDataSetIterator(dsTrain.batchBy(1), batchSize)
     val testIter      = new ListDataSetIterator(dsTest.batchBy(1), batchSize)
     (testIter, trainIter)
-  }
-
-  def randPattern(h: Int, w: Int): Seq[OneHotMatrix2Cat] = {
-    val nSamples      = 1024
-    val ptsPerSample  = 1024
-    val random        = new Random()
-    val m2csRand: Seq[OneHotMatrix2Cat]      = (1 to nSamples).map { i =>
-      val ranges = Seq((0, h), (0, w))
-      val coords = MatrixData.randomCoords(ptsPerSample, ranges, random)
-      (coords.map(xs => (xs.head, xs.last)), 1)
-    }
-    val m2csPattern: Seq[OneHotMatrix2Cat]   = (1 to nSamples).map { i =>
-      val ranges  = Seq((0, h), (0, w))
-      val s       = 4
-      val pattern = (0 until w by s).zip(0 until h by s).map { case(x, y) => Seq(x, y) }
-      val coords  = MatrixData.randomCoords(ptsPerSample - pattern.size, ranges, random) ++ pattern
-      (coords.map(xs => (xs.head, xs.last)), 0)
-    }
-    Random.shuffle(m2csPattern ++ m2csRand)
   }
 
   /**
