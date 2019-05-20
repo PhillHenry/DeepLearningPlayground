@@ -78,8 +78,8 @@ object MatrixClassification {
     }
     val m2csPattern: Seq[OneHotMatrix2Cat]   = (1 to nSamples).map { i =>
       val ranges  = Seq((0, h), (0, w))
-      val s       = 5
-      val pattern = (0 until (w, s)).zip(0 until (h, s)).map { case(x, y) => Seq(x, y) }
+      val s       = 4
+      val pattern = (0 until w by s).zip(0 until h by s).map { case(x, y) => Seq(x, y) }
       val coords  = MatrixData.randomCoords(ptsPerSample - pattern.size, ranges, random) ++ pattern
       (coords.map(xs => (xs.head, xs.last)), 0)
     }
