@@ -208,7 +208,7 @@ object AnomalyDetection {
     val net = new MultiLayerNetwork(conf)
     net.init()
     net.addListeners(new ScoreIterationListener(100))
-
+    uiServerListensTo(net)
     net
   }
 

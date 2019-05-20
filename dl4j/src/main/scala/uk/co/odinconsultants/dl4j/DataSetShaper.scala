@@ -5,12 +5,17 @@ import org.nd4j.linalg.factory.Nd4j
 
 import scala.reflect.ClassTag
 
+object DataSetShaper {
+  type OneHotMatrix2Cat = (Seq[(Int, Int)], Int)
+}
+
 class DataSetShaper[T : Numeric : ClassTag] {
+
+  import DataSetShaper._
 
   val opT: Numeric[T] = implicitly[Numeric[T]]
 
   type Series2Cat = (Seq[T], Int)
-  type OneHotMatrix2Cat = (Seq[(Int, Int)], Int)
 
   /**
     * Aha! Was the victim of this bug: https://github.com/deeplearning4j/dl4j-examples/issues/779
@@ -34,12 +39,12 @@ class DataSetShaper[T : Numeric : ClassTag] {
   def to4DDataset(s2cs: Seq[OneHotMatrix2Cat], nClasses: Int, w: Int, h: Int): DataSet = {
     val n         = s2cs.size
     val nChannels = 1
-    val features  = Nd4j.zeros(n, w, h, nChannels)
-    val labels    = Nd4j.zeros(n, nClasses)
+    val features  = Nd4j.zeros(n, nChannels, w, h)
+    val labels    = Nd4j.zeros(n: Long, nClasses: Long)
 
     s2cs.zipWithIndex.foreach { case ((coords, c), i) =>
-      coords.zipWithIndex.foreach { case (x, y) =>
-        val indxFeatures: Array[Int] = Array(i, 0, y)
+      coords.zipWithIndex.foreach { case ((x, y), j) =>
+        val indxFeatures: Array[Int] = Array(i, 0, x, y)
         features.putScalar(indxFeatures, 1d)
         val indxLabels:   Array[Int] = Array(i, c)
         labels.putScalar(indxLabels, 1)

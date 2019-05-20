@@ -3,6 +3,7 @@ package uk.co.odinconsultants.dl4j.cnn
 import java.util
 import java.util.{HashMap, Map}
 
+import org.deeplearning4j.datasets.iterator.impl.ListDataSetIterator
 import org.deeplearning4j.nn.conf.{MultiLayerConfiguration, NeuralNetConfiguration}
 import org.deeplearning4j.nn.conf.inputs.InputType
 import org.deeplearning4j.nn.conf.layers.{ConvolutionLayer, DenseLayer, OutputLayer, SubsamplingLayer}
@@ -10,33 +11,78 @@ import org.deeplearning4j.nn.multilayer.MultiLayerNetwork
 import org.deeplearning4j.nn.weights.WeightInit
 import org.deeplearning4j.optimize.listeners.ScoreIterationListener
 import org.nd4j.linalg.activations.Activation
+import org.nd4j.linalg.dataset.DataSet
+import org.nd4j.linalg.dataset.api.preprocessor.NormalizerStandardize
 import org.nd4j.linalg.learning.config.Nesterovs
 import org.nd4j.linalg.lossfunctions.LossFunctions
 import org.nd4j.linalg.schedule.{MapSchedule, ScheduleType}
 import uk.co.odinconsultants.data.MatrixData
+import uk.co.odinconsultants.dl4j.autoencoders.AnomalyDetection
 import uk.co.odinconsultants.dl4j4s.data.DataSetShaper
+import uk.co.odinconsultants.dl4j4s.data.DataSetShaper.OneHotMatrix2Cat
 
 import scala.util.Random
 
 object MatrixClassification {
-
   def main(args: Array[String]): Unit = {
-    val h = 100
-    val w = 100
-    val shaper = new DataSetShaper[Double]
-    val nSamples = 100
-    val ptsPerSample = 1000
-    val random = new Random()
-    val cat = 1
-    val m2cs = (1 to nSamples).map { i =>
+    val h                     = 100
+    val w                     = 100
+    val (testIter, trainIter) = testTrain(w, h)
+    val m                     = model(h, w)
+    val nEpochs               = 20
+    (1 to nEpochs).foreach { e =>
+      println(s"Epoch # $e")
+      m.fit(trainIter)
+      trainIter.reset()
+    }
+  }
+
+  def rawTestTrain(w: Int, h: Int): (Seq[OneHotMatrix2Cat], Seq[OneHotMatrix2Cat]) = {
+    val all           = randPattern(h, w)
+
+    val nTrain        = (all.length * 0.9).toInt
+    val train         = all.take(nTrain)
+    val test          = all.drop(nTrain)
+    (test, train)
+  }
+  type Data = ListDataSetIterator[DataSet]
+
+  def testTrain(w: Int, h: Int): (Data, Data) = {
+    val (test, train) = rawTestTrain(w, h)
+    val shaper        = new DataSetShaper[Double]
+    val nClasses      = 2
+    val dsTrain       = shaper.to4DDataset(train, nClasses, w, h)
+    val dsTest        = shaper.to4DDataset(test, nClasses, w, h)
+    val batchSize     = 32
+    val trainIter     = new ListDataSetIterator(dsTrain.batchBy(1), batchSize)
+    val testIter      = new ListDataSetIterator(dsTest.batchBy(1), batchSize)
+    val normalizer    = new NormalizerStandardize
+    normalizer.fit(trainIter)
+    trainIter.reset()
+    trainIter.setPreProcessor(normalizer)
+    testIter.reset()
+    testIter.setPreProcessor(normalizer)
+    (testIter, trainIter)
+  }
+
+  def randPattern(h: Int, w: Int): Seq[OneHotMatrix2Cat] = {
+    val nSamples      = 1024
+    val ptsPerSample  = 1024
+    val random        = new Random()
+    val m2csRand: Seq[OneHotMatrix2Cat]      = (1 to nSamples).map { i =>
       val ranges = Seq((0, h), (0, w))
       val coords = MatrixData.randomCoords(ptsPerSample, ranges, random)
-      (coords.map(xs => (xs.head, xs.last)), cat)
+      (coords.map(xs => (xs.head, xs.last)), 1)
     }
-    val ds = shaper.to4DDataset(m2cs, 2, w, h)
-    val m = model(h, w)
-    m.fit(ds)
+    val m2csPattern: Seq[OneHotMatrix2Cat]   = (1 to nSamples).map { i =>
+      val ranges  = Seq((0, h), (0, w))
+      val pattern = (0 until w).zip(0 until h).map { case(x, y) => Seq(x, y) }
+      val coords  = MatrixData.randomCoords(ptsPerSample - pattern.size, ranges, random) ++ pattern
+      (coords.map(xs => (xs.head, xs.last)), 0)
+    }
+    Random.shuffle(m2csPattern ++ m2csRand)
   }
+
 
   /**
     * Stolen from MnistClassifier in dl4j-examples
@@ -71,6 +117,8 @@ object MatrixClassification {
     val net: MultiLayerNetwork = new MultiLayerNetwork(conf)
     net.init()
     net.setListeners(new ScoreIterationListener(10))
+
+    AnomalyDetection.uiServerListensTo(net)
     net
   }
 
