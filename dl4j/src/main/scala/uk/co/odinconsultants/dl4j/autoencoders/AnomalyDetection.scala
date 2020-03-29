@@ -48,7 +48,7 @@ object AnomalyDetection {
     val activation = Activation.SOFTPLUS
 //    for (activation <- Activation.values().drop(6)) {
       for (i <- 1 to nSamples) {
-        CpuBackendNd4jPurger.purge()
+//        CpuBackendNd4jPurger.purge()
         val data = new ClusteredEventsData(bunched2SpreadRatio, N, timeSeriesSize, i)
         val net = model(timeSeriesSize, activation, i.toLong, l2)
         val (trainIter, testIter) = trainTestData(data, batch.toInt)
