@@ -2,13 +2,14 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>uk.co.odinconsultants.datatest</groupId>
   <artifactId>DeepLearningPlayground</artifactId>
-    <packaging>pom</packaging>
-    <version>1.0-SNAPSHOT</version>
-    <modules>
-        <module>dl4j</module>
-      <module>data</module>
-    </modules>
-    <name>${project.artifactId}</name>
+  <packaging>pom</packaging>
+  <version>1.0-SNAPSHOT</version>
+  <modules>
+    <module>dl4j</module>
+    <module>data</module>
+    <module>spark</module>
+  </modules>
+  <name>${project.artifactId}</name>
   <description>Test HDFS, Spark, Hive, Kafka etc all in a single JVM</description>
   <inceptionYear>2018</inceptionYear>
 
@@ -16,8 +17,8 @@
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
     <encoding>UTF-8</encoding>
-    <scala.version>2.11.5</scala.version>
-    <scala.compat.version>2.11</scala.compat.version>
+    <scala.version>2.12.10</scala.version>
+    <scala.compat.version>2.12</scala.compat.version>
   </properties>
 
   <dependencies>
@@ -55,22 +56,14 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.specs2</groupId>
-      <artifactId>specs2-core_${scala.compat.version}</artifactId>
-      <version>2.4.16</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
       <groupId>org.scalatest</groupId>
       <artifactId>scalatest_${scala.compat.version}</artifactId>
-      <version>2.2.6</version>
+      <version>3.0.3</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
 
   <build>
-    <sourceDirectory>src/main/scala</sourceDirectory>
-    <testSourceDirectory>src/test/scala</testSourceDirectory>
     <plugins>
       <plugin>
         <!-- see http://davidb.github.com/scala-maven-plugin -->
@@ -84,8 +77,16 @@
               <goal>testCompile</goal>
             </goals>
             <configuration>
+              <compilerPlugins>
+                <compilerPlugin>
+                  <groupId>org.spire-math</groupId>
+                  <artifactId>kind-projector_${scala.compat.version}</artifactId>
+                  <version>0.9.10</version>
+                </compilerPlugin>
+              </compilerPlugins>
               <args>
                 <!--<arg>-make:transitive</arg>-->
+                <arg>-Ypartial-unification</arg>
                 <arg>-dependencyfile</arg>
                 <arg>${project.build.directory}/.scala_dependencies</arg>
               </args>
@@ -99,80 +100,23 @@
         <version>2.18.1</version>
         <configuration>
           <useFile>false</useFile>
-          <disableXmlReport>false</disableXmlReport>
-          <forkMode>always</forkMode> <!-- Hive keeps closing down Spark contexts -->
+          <disableXmlReport>true</disableXmlReport>
           <!-- If you have classpath issue like NoDefClassError,... -->
           <!-- useManifestOnlyJar>false</useManifestOnlyJar -->
           <includes>
-            <include>**/*Test.*</include>
             <include>**/*Spec.*</include>
             <include>**/*Suite.*</include>
           </includes>
         </configuration>
       </plugin>
-
-      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>exec-maven-plugin</artifactId>
-        <version>1.6.0</version>
-        <executions>
-          <execution>
-            <goals>
-              <goal>java</goal>
-            </goals>
-          </execution>
-        </executions>
-        <configuration>
-          <executable>java</executable>
-          <mainClass>TimeSeries</mainClass>
-          <workingDirectory>.</workingDirectory>
-          <!--<systemProperties>-->
-            <!--<systemProperty>-->
-              <!--<key>XXX</key>-->
-              <!--<value>YYY</value>-->
-            <!--</systemProperty>-->
-          <!--</systemProperties>-->
-        </configuration>
-      </plugin>
-
-      <plugin>
-        <groupId>org.sonatype.plugins</groupId>
-        <artifactId>nexus-staging-maven-plugin</artifactId>
-        <version>1.6.7</version>
-        <extensions>true</extensions>
-        <configuration>
-          <serverId>ossrh</serverId>
-          <nexusUrl>https://oss.sonatype.org/</nexusUrl>
-          <autoReleaseAfterClose>true</autoReleaseAfterClose>
-        </configuration>
-      </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-source-plugin</artifactId>
-        <version>2.2.1</version>
-        <executions>
-          <execution>
-            <id>attach-sources</id>
-            <goals>
-              <goal>jar-no-fork</goal>
-            </goals>
-          </execution>
-        </executions>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+          <source>7</source>
+          <target>7</target>
+        </configuration>
       </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-javadoc-plugin</artifactId>
-        <version>2.9.1</version>
-        <executions>
-          <execution>
-            <id>attach-javadocs</id>
-            <goals>
-              <goal>jar</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
-
     </plugins>
   </build>
 
