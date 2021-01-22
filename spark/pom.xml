@@ -19,7 +19,16 @@
             <groupId>org.apache.spark</groupId>
             <artifactId>spark-mllib_${scala.compat.version}</artifactId>
             <version>3.1.0</version>
-            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.spark</groupId>
+            <artifactId>spark-core_${scala.compat.version}</artifactId>
+            <version>3.1.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.spark</groupId>
+            <artifactId>spark-sql_${scala.compat.version}</artifactId>
+            <version>3.1.0</version>
         </dependency>
         <dependency>
             <groupId>uk.co.odinconsultants</groupId>
